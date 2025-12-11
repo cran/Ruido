@@ -1,0 +1,27 @@
+Package: Ruido
+Title: Soundscape Background Noise, Power, and Saturation
+Version: 1.0.0
+Authors@R: c(
+    person(given = "Arthur Igor da", family = "Fonseca-Freire", email = "arthur.igorr@gmail.com", role = c("aut", "cre", "cph")),
+    person(given = "Weslley Geremias dos", family = "Santos", email = "weslleygeremias@gmail.com", role = "ctb"),
+    person("Lucas Rodriguez", family =  "Forti", email = "lucas.forti@ufersa.edu.br", role = "ctb")
+    )
+Description: Accessible and flexible implementation of three ecoacoustic indices that are less commonly available in existing R frameworks: Background Noise, Soundscape Power and Soundscape Saturation. The functions were design to accommodate a variety of sampling designs. Users can tailor calculations by specifying spectrogram time bin size, amplitude thresholds and normality tests. By simplifying computation and standardizing reproducible methods, the package aims to support ecoacoustics studies. For more details about the indices read Towsey (2014) <doi:10.1016/j.procs.2014.05.063> and Burivalova (2017) <doi:10.1111/cobi.12968>.
+Depends: R(>= 4.3.0)
+Imports: methods, tuneR, signal, nortest
+License: MIT + file LICENSE
+Encoding: UTF-8
+RoxygenNote: 7.3.3
+Suggests: ggplot2, spelling
+Maintainer: Arthur Igor da Fonseca-Freire <arthur.igorr@gmail.com>
+BugReports: https://github.com/Arthurigorr/Ruido/issues
+Config/testthat/edition: 3
+URL: https://github.com/Arthurigorr/Ruido
+Language: en-US
+NeedsCompilation: no
+Packaged: 2025-12-05 19:32:59 UTC; arthurigorr
+Author: Arthur Igor da Fonseca-Freire [aut, cre, cph],
+  Weslley Geremias dos Santos [ctb],
+  Lucas Rodriguez Forti [ctb]
+Repository: CRAN
+Date/Publication: 2025-12-11 13:30:19 UTC
