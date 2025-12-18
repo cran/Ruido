@@ -1,6 +1,6 @@
 Package: Ruido
 Title: Soundscape Background Noise, Power, and Saturation
-Version: 1.0.0
+Version: 1.0.1
 Authors@R: c(
     person(given = "Arthur Igor da", family = "Fonseca-Freire", email = "arthur.igorr@gmail.com", role = c("aut", "cre", "cph")),
     person(given = "Weslley Geremias dos", family = "Santos", email = "weslleygeremias@gmail.com", role = "ctb"),
@@ -12,16 +12,16 @@ Imports: methods, tuneR, signal, nortest
 License: MIT + file LICENSE
 Encoding: UTF-8
 RoxygenNote: 7.3.3
-Suggests: ggplot2, spelling
+Suggests: ggplot2
 Maintainer: Arthur Igor da Fonseca-Freire <arthur.igorr@gmail.com>
 BugReports: https://github.com/Arthurigorr/Ruido/issues
 Config/testthat/edition: 3
 URL: https://github.com/Arthurigorr/Ruido
 Language: en-US
 NeedsCompilation: no
-Packaged: 2025-12-05 19:32:59 UTC; arthurigorr
+Packaged: 2025-12-14 14:25:18 UTC; arthurigorr
 Author: Arthur Igor da Fonseca-Freire [aut, cre, cph],
   Weslley Geremias dos Santos [ctb],
   Lucas Rodriguez Forti [ctb]
 Repository: CRAN
-Date/Publication: 2025-12-11 13:30:19 UTC
+Date/Publication: 2025-12-18 08:50:02 UTC

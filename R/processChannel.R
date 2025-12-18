@@ -16,7 +16,7 @@ processChannel <- function(channelData,
   channelData <- switch(
     channel,
     "stereo" = list("left" = channelData@left, "right" = channelData@right),
-    "mono" = list(mono = tuneR::mono(channelData, "both")@left),
+    "mono" = list(mono = channelData@left),
     setNames(list(slot(channelData, channel)), channel)
   )
 
@@ -76,6 +76,7 @@ processChannel <- function(channelData,
   BGNexp[["timeBins"]] <- setNames(round((allSamples$e - allSamples$b) / samp.rate),
                                      paste0("BIN", seq(frameBin)))
   BGNexp[["sampRate"]] <- samp.rate
+  BGNexp[["channel"]] <- channel
 
   return(BGNexp)
 

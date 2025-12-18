@@ -74,7 +74,7 @@
 #' ylab = "Frequency (hz)", log = "y", axes = FALSE)
 #' axis(1, labels = seq(0,60, 10), at = seq(0,7e5,length.out = 7))
 #' axis(2)
-#' plot(SAT$left, xlab = "Time (s)", ylab = "Soundscape Saturation (%)",
+#' plot(SAT$mono, xlab = "Time (s)", ylab = "Soundscape Saturation (%)",
 #' type = "b", pch = 16, axes = FALSE)
 #' axis(1, labels = paste0(c("0-10","10-20","20-30","30-40","40-50","50-59"),
 #' "s"), at = 1:6)
@@ -131,7 +131,7 @@ singleSat <- function(soundfile,
     histbreaks = histbreaks
   )
 
-  if (all(c("left", "right") %in% names(BGNPOW))) {
+  if (BGNPOW$channel == "stereo") {
     BGNsaturation <- sapply(c("left", "right"), function(side) {
       list(apply(BGNPOW[[side]]$BGN, 2, function(BGN) {
         Q <- quantile(BGN, bgnthr)
@@ -152,12 +152,11 @@ singleSat <- function(soundfile,
       }))
     })))
 
-  } else if ("mono" %in% names(BGNPOW)) {
+  } else if (BGNPOW$channel == "mono") {
     BGNsaturation <- list(mono = apply(BGNPOW$mono$BGN, 2, function(BGN) {
       Q <- quantile(BGN, bgnthr)
       BGN > Q
     }))
-
 
     POWsaturation <- list(mono = apply(BGNPOW$mono$POW, 2, function(POW) {
       POW > powthr

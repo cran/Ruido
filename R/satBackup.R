@@ -4,7 +4,7 @@
 #' @param od path or paths containing your original audiofiles
 #'
 #' @description
-#' This function is a way to continue an unfinished process of the `soundSat()` function through a backup file.
+#' This function is a way to continue an unfinished process of the `soundSat()` or `soundMat()` functions through a backup file.
 #' Arguments can't be inputted nor changed since the function will automatically load them from the original `soundSat()` run.
 #'
 #' @returns
@@ -30,12 +30,12 @@
 #'   download.file(url, destfile = paste(dir, rec, sep = "/"), mode = "wb")
 #' }
 #'
-#' sat <- soundSat(dir, backup = "C:/Users/OAS/Desktop/Arthur/17243660/BACK", wl = 256)
+#' sat <- soundSat(dir, backup = dir, wl = 256)
 #'
 #' # Now pretend the process was interrupted (manually/your R crashed/your computer turned off)
 #' # To recall the backup you simply:
 #'
-#' satB <- satBackup("C:/Users/OAS/Desktop/Arthur/17243660/BACK", dir)
+#' satB <- satBackup(dir, dir)
 #'
 #' unlink(recDir)
 #' }
@@ -84,23 +84,20 @@ satBackup <- function(backupPath, od) {
           histbreaks = histbreaks
         ),
         error = function(e)
-          e,
-        warning = function(w)
-          w
+          e
       )
 
-      SATdf[[soundfile]] <- if (is(BGNPOW, "error") ||
-                                is(BGNPOW, "warning")) {
+      SATdf[[soundfile]] <- if (is(BGNPOW, "error")) {
         message("\n",
-            basename(soundfile),
-            "is not valid!\nError:",
-            BGNPOW$message,
-            "\n")
+                basename(soundfile),
+                "is not valid!\nError:",
+                BGNPOW$message,
+                "\n")
 
         BGNPOW
 
       } else {
-        if (all(c("left", "right") %in% names(BGNPOW))) {
+        if (BGNPOW$channel == "stereo") {
           BGNQleft <- apply(BGNPOW$left$BGN, 2, function(n)
             setNames(
               quantile(n, probs = seq(bgnthr[1], bgnthr[2], bgnthr[3])),
@@ -131,9 +128,7 @@ satBackup <- function(backupPath, od) {
             }))
           })
 
-          singsat <- as.data.frame(do.call(rbind, sapply(c(
-            "left", "right"
-          ), function(side) {
+          singsat <- do.call(rbind, sapply(c("left", "right"), function(side) {
             list(
               mapply(
                 function(bgnthresh, powthresh) {
@@ -147,15 +142,15 @@ satBackup <- function(backupPath, od) {
               )
             )
 
-          })))
+          }))
 
           binsUnique <- paste(rep(c('left', 'right'), each = nrow(singsat) /
                                     2), seq(nrow(singsat) / 2), sep = "_")
 
           DURATION <- rep(BGNPOW$timeBins, 2)
-          SAMPRATE <- rep(BGNPOW$sampRate, 2)
+          SAMPRATE <- BGNPOW$sampRate
 
-        } else if ("mono" %in% names(BGNPOW)) {
+        } else if (BGNPOW$channel == "mono") {
           BGNQ <- apply(BGNPOW$mono$BGN, 2, function(n)
             setNames(
               quantile(n, probs = seq(bgnthr[1], bgnthr[2], bgnthr[3])),
@@ -173,18 +168,17 @@ satBackup <- function(backupPath, od) {
           }))
 
 
-          singsat <- as.data.frame(
-            mapply(
-              function(bgnthresh, powthresh) {
-                sapply(1:length(BGNPOW$timeBins), function(i) {
-                  sum(BGNsaturation$mono[[paste0("BGN", i)]][, paste(bgnthresh)] |
-                        POWsaturation$mono[[paste0("POW", i)]][, paste(powthresh)]) / halfWl
-                })
-              },
-              thresholdCombinations$bgnthreshold,
-              thresholdCombinations$powthreshold
-            )
+          singsat <- mapply(
+            function(bgnthresh, powthresh) {
+              sapply(1:length(BGNPOW$timeBins), function(i) {
+                sum(BGNsaturation$mono[[paste0("BGN", i)]][, paste(bgnthresh)] |
+                      POWsaturation$mono[[paste0("POW", i)]][, paste(powthresh)]) / halfWl
+              })
+            },
+            thresholdCombinations$bgnthreshold,
+            thresholdCombinations$powthreshold
           )
+
 
           binsUnique <- paste("mono", seq(nrow(singsat)), sep = "_")
 
@@ -211,17 +205,15 @@ satBackup <- function(backupPath, od) {
           })), realChannel)
 
 
-          singsat <- as.data.frame(
-            mapply(
-              function(bgnthresh, powthresh) {
-                sapply(1:length(BGNPOW$timeBins), function(i) {
-                  sum(BGNsaturation[[realChannel]][[paste0("BGN", i)]][, paste(bgnthresh)] |
-                        POWsaturation[[realChannel]][[paste0("POW", i)]][, paste(powthresh)]) / halfWl
-                })
-              },
-              thresholdCombinations$bgnthreshold,
-              thresholdCombinations$powthreshold
-            )
+          singsat <- mapply(
+            function(bgnthresh, powthresh) {
+              sapply(1:length(BGNPOW$timeBins), function(i) {
+                sum(BGNsaturation[[realChannel]][[paste0("BGN", i)]][, paste(bgnthresh)] |
+                      POWsaturation[[realChannel]][[paste0("POW", i)]][, paste(powthresh)]) / halfWl
+              })
+            },
+            thresholdCombinations$bgnthreshold,
+            thresholdCombinations$powthreshold
           )
 
           binsUnique <- paste(realChannel, seq(nrow(singsat)), sep = "_")
@@ -263,87 +255,118 @@ satBackup <- function(backupPath, od) {
   file.remove(paste0(backupPath, "/SATBACKUP.RData"))
 
   which.error <- sapply(SATdf, function(x)
-    is(x, "error") || is(x, "warning"))
+    is(x, "error"))
   ERRORS <- SATdf[which.error]
-  DURATIONS <- c(sapply(SATdf[!which.error], function(x)
-    x[["DUR"]]))
-  SAMPRATES <- c(sapply(SATdf[!which.error], function(x)
-    x[["SMP"]]))
-  PATHS <- c(sapply(SATdf[!which.error], function(x)
-    rep(x[["NAME"]], length(x[["BIN"]]))))
-  BINS <- c(sapply(SATdf[!which.error], function(x)
-    x[["BIN"]]))
+  DURATIONS <- c(unlist(sapply(SATdf[!which.error], function(x)
+    x[["DUR"]])))
+  SAMPRATES <- c(unlist(sapply(SATdf[!which.error], function(x)
+    rep(x[["SMP"]], length(
+      x[["BIN"]]
+    )))))
+  PATHS <- c(unlist(sapply(SATdf[!which.error], function(x)
+    rep(x[["NAME"]], length(
+      x[["BIN"]]
+    )))))
+  BINS <- c(unlist(sapply(SATdf[!which.error], function(x)
+    x[["BIN"]])))
   SATdf <- do.call(rbind, lapply(SATdf[!which.error], function(x)
     x[["SAT"]]))
 
   colnames(SATdf) <- combinations
 
-  normal <- apply(SATdf, 2, function(Q) {
-    if (length(unique(Q)) != 1) {
-      do.call(normality, list(Q))$statistic
+  if(type == "soundSat") {
+
+    normal <- apply(SATdf, 2, function(Q) {
+      if (length(unique(Q)) != 1) {
+        do.call(normality, list(Q))$statistic
+      } else {
+        NA
+      }
+
+    })
+
+    if (normality %in% c("sf.test", "shapiro.test")) {
+      thresholds <- unlist(strsplit(names(which.max(normal)), split = "/"))
+      normOUT <- max(normal, na.rm = TRUE)
     } else {
-      NA
+      thresholds <- unlist(strsplit(names(which.min(normal)), split = "/"))
+      normOUT <- min(normal, na.rm = TRUE)
     }
 
-  })
+    normname <- switch(
+      normality,
+      "shapiro.test" = "Shapiro-Wilk",
+      "sf.test" = "Shapiro-Francia",
+      "ad.test" = "Anderson-Darling",
+      "cvm.test" = "Cram\u00e9r-von Mises",
+      "lillie.test" = "Lilliefors",
+      "pearson.test" = "Pearson chi-square"
+    )
+    normstat <- switch(
+      normality,
+      "shapiro.test" = "W",
+      "sf.test" = "W'",
+      "ad.test" = "A",
+      "cvm.test" = "W\u00b2",
+      "lillie.test" = "D",
+      "pearson.test" = "X\u00b2"
+    )
 
-  if (normality %in% c("sf.test", "shapiro.test")) {
-    thresholds <- unlist(strsplit(names(which.max(normal)), split = "/"))
-    normOUT <- max(normal, na.rm = TRUE)
+    message(
+      "\n           Soundscape Saturation Results\n\n",
+      "POW Threshold = ",
+      as.numeric(thresholds[1]),
+      " dB        ",
+      "BGN Threshold = ",
+      as.numeric(thresholds[2]) * 100,
+      "%\n",
+      normname,
+      " Test Statistic (",
+      normstat ,
+      ") = ",
+      normOUT,
+      "\n ",
+      sep = ""
+    )
+
+    export <- list(
+      powthresh = numeric(0),
+      bgntresh = numeric(0),
+      normality = numeric(0),
+      values = data.frame(),
+      errors = data.frame()
+    )
+
+    export["powthresh"] <- as.numeric(thresholds[1])
+    export["bgntresh"] <- as.numeric(thresholds[2]) * 100
+    export["normality"] <- normOUT
+    export[["values"]] <- data.frame(
+      PATH = dirname(PATHS),
+      AUDIO = basename(PATHS),
+      BIN = BINS,
+      DURATION = DURATIONS,
+      SAMPRATE = SAMPRATES,
+      SAT = SATdf[, which(normOUT == normal)]
+    )
+    export[["errors"]] <- data.frame(file = remainingfiles[which.error], do.call(rbind, ERRORS))
+
   } else {
-    thresholds <- unlist(strsplit(names(which.min(normal)), split = "/"))
-    normOUT <- min(normal, na.rm = TRUE)
+
+    export <- list(
+      powthreshs = numeric(0),
+      bgntreshs = numeric(0),
+      info = data.frame(),
+      matrix = data.frame(),
+      errors = data.frame()
+    )
+
+    export[["powthreshs"]] <- powthreshold
+    export[["bgntreshs"]] <- bgnthreshold
+    export[["info"]] <- data.frame(NAME = basename(PATHS), BINS, SAMPRATES)
+    export[["matrix"]] <- SATdf
+    export[["errors"]] <- data.frame(file = remainingfiles[which.error], do.call(rbind, ERRORS))
+
   }
-
-  normname <- switch(normality,
-                     "shapiro.test" = "Shapiro-Wilk",
-                     "sf.test" = "Shapiro-Francia",
-                     "ad.test" = "Anderson-Darling",
-                     "cvm.test" = "Cram\u00e9r-von Mises",
-                     "lillie.test" = "Lilliefors",
-                     "pearson.test" = "Pearson chi-square")
-  normstat <-switch(normality,
-                    "shapiro.test" = "W",
-                    "sf.test" = "W'",
-                    "ad.test" = "A",
-                    "cvm.test" = "W\u00b2",
-                    "lillie.test" = "D",
-                    "pearson.test" = "X\u00b2")
-
-  message(
-    "\n           Soundscape Saturation Results\n\n",
-    "POW Threshold = ",
-    as.numeric(thresholds[1]),
-    " dB        ",
-    "BGN Threshold = ",
-    as.numeric(thresholds[2]) * 100,
-    "%\n",
-    normname, " Test Statistic (", normstat , ") = ",
-    normOUT,
-    "\n ",
-    sep = ""
-  )
-
-  export <- list(
-    powthresh = numeric(0),
-    bgntresh = numeric(0),
-    normality = numeric(0),
-    values = data.frame(),
-    errors = data.frame()
-  )
-
-  export["powthresh"] <- as.numeric(thresholds[1])
-  export["bgntresh"] <- as.numeric(thresholds[2]) * 100
-  export["normality"] <- normOUT
-  export[["values"]] <- data.frame(
-    PATH = dirname(PATHS),
-    AUDIO = basename(PATHS),
-    BIN = BINS,
-    DURATION = DURATIONS,
-    SAMPRATE = SAMPRATES,
-    SAT = SATdf[, which(normOUT == normal)]
-  )
-  export[["errors"]] <- data.frame(file = remainingfiles[which.error], do.call(rbind, ERRORS))
 
   return(export)
 

@@ -189,7 +189,8 @@ soundMat <- function(soundpath,
       overlap = overlap,
       histbreaks = histbreaks,
       powthr = powthr,
-      bgnthr = bgnthr
+      bgnthr = bgnthr,
+      type = "soundMat"
     )
   }
 
@@ -216,18 +217,17 @@ soundMat <- function(soundpath,
         w
     )
 
-    SATdf[[soundfile]] <- if (is(BGNPOW, "error") ||
-                              is(BGNPOW, "warning")) {
+    SATdf[[soundfile]] <- if (is(BGNPOW, "error")) {
       message("\n",
-          basename(soundfile),
-          "is not valid!\nError:",
-          BGNPOW$message,
-          "\n")
+              basename(soundfile),
+              "is not valid!\nError:",
+              BGNPOW$message,
+              "\n")
 
       BGNPOW
 
     } else {
-      if (all(c("left", "right") %in% names(BGNPOW))) {
+      if (BGNPOW$channel == "stereo") {
         BGNQleft <- apply(BGNPOW$left$BGN, 2, function(n)
           setNames(
             quantile(n, probs = seq(bgnthr[1], bgnthr[2], bgnthr[3])),
@@ -258,9 +258,7 @@ soundMat <- function(soundpath,
           }))
         })
 
-        singsat <- as.data.frame(do.call(rbind, sapply(c(
-          "left", "right"
-        ), function(side) {
+        singsat <- do.call(rbind, sapply(c("left", "right"), function(side) {
           list(
             mapply(
               function(bgnthresh, powthresh) {
@@ -274,13 +272,13 @@ soundMat <- function(soundpath,
             )
           )
 
-        })))
+        }))
 
         binsUnique <- paste(rep(c('left', 'right'), each = nrow(singsat) /
                                   2), seq(nrow(singsat) / 2), sep = "_")
 
         DURATION <- rep(BGNPOW$timeBins, 2)
-        SAMPRATE <- rep(BGNPOW$sampRate, 2)
+        SAMPRATE <- BGNPOW$sampRate
 
       } else if ("mono" %in% names(BGNPOW)) {
         BGNQ <- apply(BGNPOW$mono$BGN, 2, function(n)
@@ -300,18 +298,17 @@ soundMat <- function(soundpath,
         }))
 
 
-        singsat <- as.data.frame(
-          mapply(
-            function(bgnthresh, powthresh) {
-              sapply(1:length(BGNPOW$timeBins), function(i) {
-                sum(BGNsaturation$mono[[paste0("BGN", i)]][, paste(bgnthresh)] |
-                      POWsaturation$mono[[paste0("POW", i)]][, paste(powthresh)]) / halfWl
-              })
-            },
-            thresholdCombinations$bgnthreshold,
-            thresholdCombinations$powthreshold
-          )
+        singsat <- mapply(
+          function(bgnthresh, powthresh) {
+            sapply(1:length(BGNPOW$timeBins), function(i) {
+              sum(BGNsaturation$mono[[paste0("BGN", i)]][, paste(bgnthresh)] |
+                    POWsaturation$mono[[paste0("POW", i)]][, paste(powthresh)]) / halfWl
+            })
+          },
+          thresholdCombinations$bgnthreshold,
+          thresholdCombinations$powthreshold
         )
+
 
         binsUnique <- paste("mono", seq(nrow(singsat)), sep = "_")
 
@@ -338,18 +335,17 @@ soundMat <- function(soundpath,
         })), realChannel)
 
 
-        singsat <- as.data.frame(
-          mapply(
-            function(bgnthresh, powthresh) {
-              sapply(1:length(BGNPOW$timeBins), function(i) {
-                sum(BGNsaturation[[realChannel]][[paste0("BGN", i)]][, paste(bgnthresh)] |
-                      POWsaturation[[realChannel]][[paste0("POW", i)]][, paste(powthresh)]) / halfWl
-              })
-            },
-            thresholdCombinations$bgnthreshold,
-            thresholdCombinations$powthreshold
-          )
+        singsat <- mapply(
+          function(bgnthresh, powthresh) {
+            sapply(1:length(BGNPOW$timeBins), function(i) {
+              sum(BGNsaturation[[realChannel]][[paste0("BGN", i)]][, paste(bgnthresh)] |
+                    POWsaturation[[realChannel]][[paste0("POW", i)]][, paste(powthresh)]) / halfWl
+            })
+          },
+          thresholdCombinations$bgnthreshold,
+          thresholdCombinations$powthreshold
         )
+
 
         binsUnique <- paste(realChannel, seq(nrow(singsat)), sep = "_")
 
@@ -387,7 +383,7 @@ soundMat <- function(soundpath,
 
   }
 
-    if (!is.null(backup)) {
+  if (!is.null(backup)) {
     SATdf["ogARGS"] <- NULL
     file.remove(paste0(backup, "/SATBACKUP.RData"))
 
@@ -396,14 +392,14 @@ soundMat <- function(soundpath,
   which.error <- sapply(SATdf, function(x)
     is(x, "error") || is(x, "warning"))
   ERRORS <- SATdf[which.error]
-  DURATIONS <- c(sapply(SATdf[!which.error], function(x)
-    x[["DUR"]]))
-  SAMPRATES <- c(sapply(SATdf[!which.error], function(x)
-    x[["SMP"]]))
-  PATHS <- c(sapply(SATdf[!which.error], function(x)
-    rep(x[["NAME"]], length(x[["BIN"]]))))
-  BIN <- c(sapply(SATdf[!which.error], function(x)
-    x[["BIN"]]))
+  DURATIONS <- c(unlist((sapply(SATdf[!which.error], function(x)
+    x[["DUR"]]))))
+  SAMPRATES <- c(unlist(sapply(SATdf[!which.error], function(x)
+    rep(x[["SMP"]], length(x[["BIN"]])))))
+  PATHS <- c(unlist(sapply(SATdf[!which.error], function(x)
+    rep(x[["NAME"]], length(x[["BIN"]])))))
+  BIN <- c(unlist(sapply(SATdf[!which.error], function(x)
+    x[["BIN"]])))
   SATdf <- do.call(rbind, lapply(SATdf[!which.error], function(x)
     x[["SAT"]]))
 

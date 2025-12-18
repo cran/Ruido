@@ -66,29 +66,29 @@
 #' bgn <- bgNoise(wave)
 #'
 #' # Print the results
-#' head(bgn$left$BGN)
-#' head(bgn$left$POW)
+#' head(bgn$mono$BGN)
+#' head(bgn$mono$POW)
 #'
 #' # Plotting background noise and soundscape profile for the first minute of the recording
 #' par(mfrow = c(2,2))
-#' plot(x = bgn$left$BGN$BGN1, y = seq(1,bgn$sampRate, length.out = 256),
+#' plot(x = bgn$mono$BGN$BGN1, y = seq(1,bgn$sampRate, length.out = 256),
 #'      xlab = "Background Noise (dB)", ylab = "Frequency (hz)",
 #'      main = "BGN by Frequency",
 #'      type = "l")
-#' plot(x = bgn$left$POW$POW1, y = seq(1,bgn$sampRate, length.out = 256),
+#' plot(x = bgn$mono$POW$POW1, y = seq(1,bgn$sampRate, length.out = 256),
 #'      xlab = "Soundscape Power (dB)", ylab = "Frequency (hz)",
 #'      main = "POW by Frequency",
 #'      type = "l")
-#' plot(bgn$left$BGN$BGN1~bgn$left$POW$POW1, pch = 16,
+#' plot(bgn$mono$BGN$BGN1~bgn$mono$POW$POW1, pch = 16,
 #'      xlab = "Soundscape Power (dB)", ylab = "Background Noise (dB)",
-#'      main = "BGN~POW in left ear")
-#' hist(bgn$left$BGN$BGN1, main = "Histogram of BGN distribution",
+#'      main = "BGN~POW")
+#' hist(bgn$mono$BGN$BGN1, main = "Histogram of BGN distribution",
 #'       xlab = "Background Noise (BGN)")
 #'
 #'\donttest{
 #'   oldpar <- par(no.readonly = TRUE)
 #'   ### This is a secondary example using audio from a real soundscape
-#'   ### These audios are originated from the Escutad\^o Project
+#'   ### These audios are originated from the Escutadô Project
 #'   # Getting audiofile from the online Zenodo library
 #'   dir <- tempdir()
 #'   rec <- paste0("GAL24576_20250401_", sprintf("%06d", 0),".wav")
@@ -139,8 +139,9 @@ bgNoise <- function(soundfile,
   }
 
   audio <- if (is.character(soundfile)) {
-    if (tools::file_ext(soundfile) %in% c("mp3", "wav")) {
-      if (tools::file_ext(soundfile) == "mp3") {
+    fileExt <- tolower(tools::file_ext(soundfile))
+    if (fileExt %in% c("mp3", "wav")) {
+      if (fileExt == "mp3") {
         tuneR::readMP3(soundfile)
       } else {
         tuneR::readWave(soundfile)
@@ -152,9 +153,13 @@ bgNoise <- function(soundfile,
     soundfile
   }
 
-  if (!audio@stereo && channel == "stereo") {
-    warning("Audio is not stereo, defaulting to left channel.")
-    channel <- "left"
+  if(channel == "mono" && audio@stereo) {
+    audio <- tuneR::mono(audio, which = "both")
+  }
+
+  if (channel == "stereo" && !audio@stereo) {
+    message("Audio is not stereo, defaulting to left channel.")
+    channel <- "mono"
   }
 
   if (!is.null(targetSampRate)) {

@@ -106,7 +106,7 @@ image(periodogram(wave_obj, width = 64), xlab = "Time (s)",
 ylab = "Frequency (hz)", log = "y", axes = FALSE)
 axis(1, labels = seq(0,60, 10), at = seq(0,7e5,length.out = 7))
 axis(2)
-plot(SAT$left, xlab = "Time (s)", ylab = "Soundscape Saturation (\%)",
+plot(SAT$mono, xlab = "Time (s)", ylab = "Soundscape Saturation (\%)",
 type = "b", pch = 16, axes = FALSE)
 axis(1, labels = paste0(c("0-10","10-20","20-30","30-40","40-50","50-59"),
 "s"), at = 1:6)
