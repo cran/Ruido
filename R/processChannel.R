@@ -9,7 +9,11 @@ processChannel <- function(channelData,
 
   samp.rate <- channelData@samp.rate
 
-  allSamples <- getSampleBins(length(channelData), samp.rate, timeBin)
+  allSamples <- if(is.null(timeBin)) {
+    data.frame(b = 1, e = length(channelData))
+  } else {
+    getSampleBins(length(channelData), samp.rate, timeBin)
+  }
 
   frameBin <- nrow(allSamples)
 
@@ -20,7 +24,7 @@ processChannel <- function(channelData,
     setNames(list(slot(channelData, channel)), channel)
   )
 
-  BGNexp <- lapply(channelData, function(x) {
+  BGNexp <- list(values = lapply(channelData, function(x) {
 
     offset <- x - mean(x)
 
@@ -43,20 +47,20 @@ processChannel <- function(channelData,
 
       spectS[spectS < dbThreshold] <- dbThreshold
 
-      apply(spectS, 1, function(x) {
-        dbMax <- max(x)
-        dbMin <- min(x)
+      apply(spectS, 1, function(z) {
+        dbMax <- max(z)
+        dbMin <- min(z)
 
         num_bins <- ifelse(is.numeric(histbreaks), histbreaks, eval(parse(
-          text = paste0("nclass.", histbreaks, "(x)")
+          text = paste0("nclass.", histbreaks, "(z)")
         )))
 
         modal_intensity <- dbMin + ((which.max(tabulate(
           findInterval(
-            x = x,
+            x = z,
             vec = seq(dbMin, dbMax, length.out = num_bins)
           )
-        ))) * 2 * IQR(x) / length(x)^(1 / 3))
+        ))) * 2 * IQR(z) / length(z)^(1 / 3))
 
         c(BGN = modal_intensity, POW = dbMax - modal_intensity)
       })
@@ -71,7 +75,7 @@ processChannel <- function(channelData,
 
     return(list(BGN = BGN, POW = POW))
 
-  })
+  }))
 
   BGNexp[["timeBins"]] <- setNames(round((allSamples$e - allSamples$b) / samp.rate),
                                      paste0("BIN", seq(frameBin)))

@@ -15,7 +15,8 @@ singleSat(
   overlap = ceiling(length(window)/2),
   histbreaks = "FD",
   powthr = 10,
-  bgnthr = 0.8
+  bgnthr = 0.8,
+  beta = TRUE
 )
 }
 \arguments{
@@ -23,7 +24,7 @@ singleSat(
 
 \item{channel}{channel where the background noise values will be extract from. Available channels are: \code{"stereo"}, \code{"mono"}, \code{"left"} or \code{"right"}. Defaults to \code{"stereo"}.}
 
-\item{timeBin}{size (in seconds) of the time bin. Defaults to \code{60}.}
+\item{timeBin}{size (in seconds) of the time bin. Set to \code{NULL} to use the entire audio as a single bin. Defaults to \code{60}}
 
 \item{dbThreshold}{minimum allowed value of dB for the spectrograms. Defaults to \code{-90}, as set by Towsey 2017.}
 
@@ -41,15 +42,17 @@ singleSat(
 \item{powthr}{a single value to evaluate the activity matrix for Soundscape Power (in \%dB). Defaults to \code{10}.}
 
 \item{bgnthr}{a single value to evaluate the activity matrix for Background Noise (in \%). Defaults to \code{0.8}}
+
+\item{beta}{how BGN thresholds are calculated. If TRUE, BGN thresholds are computed using all recordings combined.}
 }
 \value{
-A data frame containing the saturation values for all time bins of the inputed file
+A vector containing the saturation values for all time bins of the inputted file
 }
 \description{
 Single Soundscape Saturation Index
 }
 \details{
-Soundscape Saturation (\code{SAT}) is a measure of the proportion of frequency bins that are acoustically active in a determined window of time. It was developed by Burivalova et al. 2017 as an index to test the acoustic niche hypothesis.
+Soundscape Saturation (\code{SAT}) is a measure of the proportion of frequency bins that are acoustically active in a determined window of time. It was developed by Burivalova et al. 2018 as an index to test the acoustic niche hypothesis.
 To calculate this function, first we need to generate an activity matrix for each time bin of your recording with the following formula:
 
 \deqn{a_{mf} = 1\  if (BGN_{mf} > \theta_{1})\  or\  (POW_{mf} > \theta_{2});\  otherwise,\  a_{mf} = 0,}
@@ -64,60 +67,57 @@ Since this is analyzing the soundscape saturaion of a single file, no normality 
 }
 \examples{
 
+oldpar <- par(no.readonly = TRUE)
+
 ### Generating an artificial audio for the example
 ## For this example we'll generate a sweep in a noisy soundscape
 library(tuneR)
 
-# Define the audio sample rate, duration and number of samples
+# Define parameters for the artificial audio
 samprate <- 12050
 dur <- 59
+n <- samprate * dur
 
-# Create a time vector
-t <- seq(0, dur, by = 1/samprate)
-
-# It starts at the frequency 50hz and goes all the way up to 4000hz
-# The sweep is exponnential
-freqT <- 50 * (4000/50)^(t/dur)
-
-# Generate the signal
-signal1 <- sin(10 * pi * cumsum(freqT) / samprate)
-# We create an envelope to give the sweep a fade away
-envelope <- exp(-4 * t / dur)
-# Generating low noise for the audio
+# White noise
 set.seed(413)
-noise <- rnorm(length(t), sd = 0.3)
-# Adding everything together in our signal
-signal <- signal1 * envelope + noise
+noise <- rnorm(n)
 
-# Normalize to 16-bit WAV range to create our Wave object
-signalNorm <- signal / max(abs(signal))
-wave_obj <- Wave(left = signalNorm, samp.rate = samprate, bit = 16)
+# Linear fade-out envelope
+fade <- seq(1, 0, length.out = n)
 
-# Now we calculate soundscape saturation for our audio
-# Here we are using timeBin = 10 so we get Soundscape Saturation values
-# every 10 seconds on the audio
-SAT <- singleSat(wave_obj, timeBin = 10)
+# Apply fade
+signal <- noise * fade
+
+# Create Wave object
+wave <- Wave(
+  left = signal,
+  samp.rate = samprate,
+  bit = 16
+)
+
+# Running singleSat() on the artificial audio
+sat <- singleSat(wave, timeBin = 10)
 
 # Now we can plot the results
 # In the left we have a periodogram and in the right saturaion values
 # along one minute
 par(mfrow = c(1,2))
-image(periodogram(wave_obj, width = 64), xlab = "Time (s)",
-ylab = "Frequency (hz)", log = "y", axes = FALSE)
+image(periodogram(wave, width = 8192, normalize = FALSE), xlab = "Time (s)",
+ylab = "Frequency (hz)", axes = FALSE)
 axis(1, labels = seq(0,60, 10), at = seq(0,7e5,length.out = 7))
 axis(2)
-plot(SAT$mono, xlab = "Time (s)", ylab = "Soundscape Saturation (\%)",
+plot(sat, xlab = "Time (s)", ylab = "Soundscape Saturation (\%)",
 type = "b", pch = 16, axes = FALSE)
 axis(1, labels = paste0(c("0-10","10-20","20-30","30-40","40-50","50-59"),
 "s"), at = 1:6)
 axis(2)
 
+par(oldpar)
+
 \donttest{
-
-oldpar <- par(no.readonly = TRUE)
-
 # Getting audiofile from the online Zenodo library
-dir <- tempdir()
+dir <- paste(tempdir(), "forExample", sep = "/")
+dir.create(dir)
 rec <- paste0("GAL24576_20250401_", sprintf("\%06d", 0),".wav")
 recDir <- paste(dir,rec , sep = "/")
 url <- paste0("https://zenodo.org/records/17575795/files/", rec, "?download=1")
@@ -126,18 +126,17 @@ url <- paste0("https://zenodo.org/records/17575795/files/", rec, "?download=1")
 download.file(url, destfile = recDir, mode = "wb")
 
 # Now we calculate soundscape saturation for both sides of the recording
-sat <- singleSat(recDir, wl = 256)
+sat <- singleSat(recDir)
 
 # Printing the results
 print(sat)
 
-barplot(c(sat$left, sat$right), col = c("darkgreen", "red"),
+barplot(sat, col = c("darkgreen", "red"),
        names.arg = c("Left", "Right"), ylab = "Soundscape Saturation (\%)")
 
-unlink(recDir)
-par(oldpar)
+unlink(dir, recursive = TRUE)
 }
 }
 \references{
-Burivalova, Z., Towsey, M., Boucher, T., Truskinger, A., Apelis, C., Roe, P., & Game, E. T. (2017). Using soundscapes to detect variable degrees of human influence on tropical forests in Papua New Guinea. Conservation Biology, 32(1), 205-215. https://doi.org/10.1111/cobi.12968
+Burivalova, Z., Towsey, M., Boucher, T., Truskinger, A., Apelis, C., Roe, P., & Game, E. T. (2018). Using soundscapes to detect variable degrees of human influence on tropical forests in Papua New Guinea. Conservation Biology, 32(1), 205-215. https://doi.org/10.1111/cobi.12968
 }

@@ -10,5 +10,8 @@ utils::globalVariables(c(
   'dbThreshold',
   'histbreaks',
   'normality',
-  'type'
+  'type',
+  'od',
+  'nFiles',
+  'concluded'
 ))

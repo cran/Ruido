@@ -2,21 +2,19 @@
 % Please edit documentation in R/satBackup.R
 \name{satBackup}
 \alias{satBackup}
-\title{Backup for Soundscape Saturation Index}
+\title{Backup for Ruido's functions}
 \usage{
-satBackup(backupPath, od)
+satBackup(backup)
 }
 \arguments{
-\item{backupPath}{path you set in your \code{backup} in the \code{soundSat()} function. Audiofiles already finished will be drawn from this path}
-
-\item{od}{path or paths containing your original audiofiles}
+\item{backup}{path to the .RData file create by the backup of soundSat or soundMat}
 }
 \value{
-A list containing five objects. The first and second objects (powthresh and bgnthresh) are the threshold values that yielded the most normal distribution of saturation values using the normality test set by the user. The third (normality) contains the statitics values of the normality test that yielded the most normal distribution. The fourth object (values) contains a data.frame with the the values of saturation for each bin of each recording and the size of the bin in seconds. The fifth contains a data.frame with errors that occurred with specific files during the function.
+This functions returns the same output of \code{soundSat()}, \code{soundMat()} or \code{multActivity()}
 }
 \description{
-This function is a way to continue an unfinished process of the \code{soundSat()} or \code{soundMat()} functions through a backup file.
-Arguments can't be inputted nor changed since the function will automatically load them from the original \code{soundSat()} run.
+This function is a way to continue an unfinished process of the \code{soundSat()}, \code{soundMat()} or \code{multActivity()} functions through a backup file.
+Arguments can't be inputted nor changed since the function will automatically load them from the \code{.RData} files. However you may manually change them (not recomended)
 }
 \examples{
 \dontrun{
@@ -25,7 +23,8 @@ Arguments can't be inputted nor changed since the function will automatically lo
 ## This example will load an entire day of audios to your computer, so beware.
 
 ### Downloading audiofiles from public Zenodo library
-dir <- tempdir()
+dir <- paste(tempdir(), "forExample", sep = "/")
+dir.create(dir)
 recName <- paste0("GAL24576_20250401_", sprintf("\%06d", seq(0, 230000, by = 10000)),".wav")
 recDir <- paste(dir, recName, sep = "/")
 
@@ -35,13 +34,20 @@ for(rec in recName) {
   download.file(url, destfile = paste(dir, rec, sep = "/"), mode = "wb")
 }
 
-sat <- soundSat(dir, backup = dir, wl = 256)
+sat <- soundSat(dir, backup = dir)
 
 # Now pretend the process was interrupted (manually/your R crashed/your computer turned off)
+# We get the backup file
+
+list.files(dir)
+backupDir <- paste(dir, "SATBACKUP.RData", sep = "/")
+
 # To recall the backup you simply:
 
-satB <- satBackup(dir, dir)
+satB <- satBackup(backupDir)
 
-unlink(recDir)
+head(satB$values)
+
+unlink(dir, recursive = TRUE)
 }
 }

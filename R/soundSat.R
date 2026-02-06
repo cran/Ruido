@@ -1,29 +1,28 @@
 #' @title Soundscape Saturation Index
 #'
-#' @description Calculate Soundscape Saturation for a combination of recordings using Burivalova 2018 methodology
+#' @description Calculate Soundscape Saturation for a combination of recordings using the methodology proposed in Burivalova 2018
 #'
-#' @param soundpath single directory or multiple directory to audio files. The directory must lead to a single folder or a combination of folders.
+#' @param soundpath single or multiple directories to your audio files
 #' @param channel channel where the saturation values will be extract from. Available channels are: `"stereo"`, `"mono"`, `"left"` or `"right"`. Defaults to `"stereo"`.
-#' @param timeBin size (in seconds) of the time bin. Defaults to `60`.
-#' @param dbThreshold minimum allowed value of dB for the spectrograms. Defaults to `-90`, as set by Towsey.
-#' @param targetSampRate sample rate of the audios. Defaults to `NULL` to not change the sample rate. This argument is only used to down sample the audio.
-#' @param wl window length of the spectrogram. Defaults to `512`.
-#' @param window window used to smooth the spectrogram. Defaults to `signal::hammning(wl)`. Switch to `signal::hanning(wl)` if to use hanning instead.
+#' @param timeBin size (in seconds) of the time bin. Set to `NULL` to use the entire audio as a single bin. Defaults to `60`
+#' @param dbThreshold minimum allowed value of dB for the spectrograms. Defaults to `-90`, as set by Towsey 2017
+#' @param targetSampRate desired sample rate of the audios.  This argument is only used to down sample the audio. If `NULL`, then audio's sample rate remains the same. Defaults to `NULL`
+#' @param wl window length of the spectrogram. Defaults to `512`
+#' @param window window used to smooth the spectrogram. Switch to `signal::hanning(wl)` to use hanning instead. Defaults to `signal::hammning(wl)`
 #' @param overlap overlap between the spectrogram windows. Defaults to `wl/2` (half the window length)
-#' @param histbreaks breaks used to calculate Background Noise. Available breaks are: `"FD"`, `"Sturges"`, `"scott"` and `100`. Defaults to `"FD"`.
-#' <br>Can also be set to any number to limit or increase the amount of breaks.
-#' @param powthr vector of values to evaluate the activity matrix for Soundscape Power (in dB). The first value corresponds to the lowest dB value and the second corresponds to the highest, the third value is the step.
-#' <br>Defaults to `c(5, 20, 1)`, which means the first thresholds starts at 5dB and jumps a whole number till 20dB.
-#' @param bgnthr vector of values to evaluate the activity matrix for Background Noise (in %). The first value corresponds to the lowest quantile value and the second corresponds to the highest, the third value is the step.
-#' <br>Defaults to `c(0.5, 0.9, 0.05)`, which means the first thresholds starts at 50% and jumps 5% till 90%.
-#' @param normality normality test to determine which threshold combination has the most normal distribution of values. We recommend to pick any test from the `nortest` package. Input the test as a character. Defaults to `"ad.test"`.
-#' <br>`"ks.test"` is not available. `"shapiro.test"` can be used, however we recommend using only when analyzing very few recordings.
-#' @param backup path to backup the saturation values in case the computer is turned off during processing or in case you cannot be sure the computer will be on for the entire process. Defaults to `NULL`.
-#' <br>The backup will be updated every 5 recordings processed.
+#' @param histbreaks breaks used to calculate Background Noise. Available breaks are: `"FD"`, `"Sturges"`, `"scott"` or any numeric value (foe example = `100`). Defaults to `"FD"`
+#' @param powthr numeric vector of length three containing the the range of thresholds used to evaluate the Soundscape Power of the  Activity Matrix (in dB). The values correspond to the minimum threshold, maximum threshold and step size respectively.
+#' <br> Defaults to `c(5, 20, 1)`, which evaluates thresholds from 5 dB to 20 dB in increments of 1 dB
+#' @param bgnthr numeric vector of length three containing the the range of thresholds used to evaluate the Background Noise of the  Activity Matrix (in %). The values correspond to the minimum threshold, maximum threshold and step size respectively.
+#' <br> Defaults to `c(0.5, 0.9, 0.05)`, which evaluates thresholds from 50% to 90% in increments of 5%
+#' @param normality character string containing the normality test used to determine which threshold combination has the most normal distribution of values. We recommend to pick any test from the `nortest` package. Defaults to `"ad.test"`.
+#' <br>`"ks.test"` is not available. `"shapiro.test"` can be used, however we recommend using only when analyzing very few recordings
+#' @param beta how BGN thresholds are calculated. If `TRUE`, BGN thresholds are calculated using all recordings combined. If FALSE, BGN thresholds are calculated separately for each recording. Defaults to `TRUE`
+#' @param backup path to save the backup. Defaults to `NULL`
 #'
 #' @returns A list containing five objects. The first and second objects (powthresh and bgnthresh) are the threshold values that yielded the most normal distribution of saturation values using the normality test set by the user. The third (normality) contains the statitics values of the normality test that yielded the most normal distribution. The fourth object (values) contains a data.frame with the the values of saturation for each bin of each recording and the size of the bin in seconds. The fifth contains a data.frame with errors that occurred with specific files during the function.
 #'
-#' @details Soundscape Saturation (`SAT`) is a measure of the proportion of frequency bins that are acoustically active in a determined window of time. It was developed by Burivalova et al. 2017 as an index to test the acoustic niche hypothesis.
+#' @details Soundscape Saturation (`SAT`) is a measure of the proportion of frequency bins that are acoustically active in a determined window of time. It was developed by Burivalova et al. 2018 as an index to test the acoustic niche hypothesis.
 #' To calculate this function, first we need to generate an activity matrix for each time bin of your recording with the following formula:
 #'
 #'\deqn{a_{mf} = 1\  if (BGN_{mf} > \theta_{1})\  or\  (POW_{mf} > \theta_{2});\  otherwise,\  a_{mf} = 0,}
@@ -36,9 +35,9 @@
 #'
 #'After these equations are done, we check every threshold combination for normality and pick the combination that yields the most normal distribution of saturation values.
 #'
-#'If you set a path for the "path" argument, a single rds file will be written in your path. This objects can be loaded again through the "satBack" function to continue the calculation of saturation in case the process is suddenly stopped.
+#' If `backup` is set to a valid directory, a file named `"SATBACKUP.RData"` is saved after every batch of five processed files. If the function execution is interrupted (e.g., manual termination, an R session crash, or a system shutdown), this backup file can be passed to `satBackup()` (e.g., `~path/SATBACKUP.RData`) to resume the original process. Once a backup is created, all arguments and file paths must remain unchanged, unless they are manually modified within the `.RData` object.
 #'
-#'@references Burivalova, Z., Towsey, M., Boucher, T., Truskinger, A., Apelis, C., Roe, P., & Game, E. T. (2017). Using soundscapes to detect variable degrees of human influence on tropical forests in Papua New Guinea. Conservation Biology, 32(1), 205-215. https://doi.org/10.1111/cobi.12968
+#'@references Burivalova, Z., Towsey, M., Boucher, T., Truskinger, A., Apelis, C., Roe, P., & Game, E. T. (2018). Using soundscapes to detect variable degrees of human influence on tropical forests in Papua New Guinea. Conservation Biology, 32(1), 205-215. https://doi.org/10.1111/cobi.12968
 #'
 #'@export
 #'@importFrom methods is
@@ -52,22 +51,23 @@
 #' @examples
 #' \donttest{
 #' ### Downloading audiofiles from public Zenodo library
-#' dir <- tempdir()
+#' dir <- paste(tempdir(), "forExample", sep = "/")
+#' dir.create(dir)
 #' recName <- paste0("GAL24576_20250401_", sprintf("%06d", seq(0, 200000, by = 50000)),".wav")
 #' recDir <- paste(dir, recName, sep = "/")
 #'
-#' for(rec in recName) {
+#' for(rec in recDir) {
 #'  print(rec)
-#'  url <- paste0("https://zenodo.org/records/17575795/files/", rec, "?download=1")
-#'  download.file(url, destfile = paste(dir, rec, sep = "/"), mode = "wb")
+#'  url <- paste0("https://zenodo.org/records/17575795/files/", basename(rec), "?download=1")
+#'  download.file(url, destfile = rec, mode = "wb")
 #' }
 #'
 #' ### Running the function
-#' sat <- soundSat(dir, wl = 256)
+#' sat <- soundSat(dir)
 #'
 #' ### Preparing the plot
 #' timeSplit <- strsplit(sat$values$AUDIO, "_")
-#' sides <- ifelse(grepl("left", sat$values$BIN), "left", "right")
+#' sides <- sat$values$CHANNEL
 #' date <- sapply(timeSplit, function(x)
 #'   x[2])
 #' time <- sapply(timeSplit, function(x)
@@ -85,10 +85,10 @@
 #'      ylab = "Soundscape Saturation (%)", xlab = "Time of Day", type = "b")
 #' points(SAT~HOUR, data = rightEar, ylim = c(range(sat$values$SAT)),
 #' col = "red", pch = 16, type = "b")
-#' legend("topright", legend = c("Left Ear", "Right Ear"),
+#' legend("bottomright", legend = c("Left Ear", "Right Ear"),
 #'        col = c("darkgreen", "red"), lty = 1)
 #'
-#' unlink(recDir)
+#' unlink(dir, recursive = TRUE)
 #' }
 soundSat <- function(soundpath,
                      channel = "stereo",
@@ -102,12 +102,31 @@ soundSat <- function(soundpath,
                      powthr = c(5, 20, 1),
                      bgnthr = c(0.5, 0.9, 0.05),
                      normality = "ad.test",
+                     beta = TRUE,
                      backup = NULL) {
   if (all(!dir.exists(soundpath)))
     stop("all provided soundpaths must be valid.")
 
   if (!is.null(backup) && !dir.exists(backup))
     stop("please provide a valid folder for backup.")
+
+  if (!(channel %in% c("left", "right", "stereo", "mono")))
+    stop("channel must be 'stereo', 'mono', 'left', or 'right'")
+
+  if (!is.numeric(timeBin) & !is.null(timeBin))
+    stop("timeBin must be numeric")
+
+  if (!is.numeric(dbThreshold))
+    stop("timeBin must be numeric")
+
+  if (!is.null(targetSampRate)) {
+    if (!is.numeric(targetSampRate))
+      stop("targetSampRate must be either NULL or a numeric value")
+  }
+
+  powthreshold <- seq(powthr[1], powthr[2], powthr[3])
+  names(powthreshold) <- powthreshold
+  bgnthreshold <- seq(bgnthr[1], bgnthr[2], bgnthr[3])
 
   soundfiles <- list.files(soundpath, full.names = TRUE, recursive = TRUE)
   soundfiles <- soundfiles[tolower(tools::file_ext(soundfiles)) %in% c("mp3", "wav")]
@@ -162,10 +181,6 @@ soundSat <- function(soundpath,
 
   }
 
-  powthreshold <- seq(powthr[1], powthr[2], powthr[3])
-  names(powthreshold) <- powthreshold
-  bgnthreshold <- seq(bgnthr[1], bgnthr[2], bgnthr[3])
-
   thresholdCombinations <- setNames(expand.grid(powthreshold, bgnthreshold),
                                     c("powthreshold", "bgnthreshold"))
 
@@ -198,18 +213,25 @@ soundSat <- function(soundpath,
       powthr = powthr,
       bgnthr = bgnthr,
       normality = normality,
-      type = "soundSat"
+      beta = beta,
+      type = "soundSat",
+      od = soundpath,
+      nFiles = length(soundfiles),
+      concluded = 0
     )
   }
 
-  fiveSteps <- 1
+  nFiles <- length(soundfiles)
+  SATdf[["indexes"]] <- vector("list", nFiles)
 
-  for (soundfile in soundfiles) {
-    fiveSteps <- fiveSteps + 1
+  for (soundfile in 1:nFiles) {
+    gc()
 
-    BGNPOW <- tryCatch(
+    sPath <- soundfiles[[soundfile]]
+
+    SATdf[["indexes"]][[soundfile]] <- tryCatch(
       bgNoise(
-        soundfile,
+        sPath,
         timeBin = timeBin,
         targetSampRate = targetSampRate,
         window = window,
@@ -223,196 +245,133 @@ soundSat <- function(soundpath,
         e
     )
 
-    SATdf[[soundfile]] <- if (is(BGNPOW, "error")) {
-      warning("\n",
-              basename(soundfile),
-              "is not valid!\nError:",
-              BGNPOW$message,
-              "\n")
+    SATdf[["indexes"]][[soundfile]][["path"]] <- sPath
 
-      BGNPOW
+    message(
+      "\r(",
+      basename(soundfiles[soundfile]),
+      ") ",
+      match(soundfiles[soundfile], soundfiles),
+      " out of ",
+      length(soundfiles),
+      " recordinds concluded!",
+      sep = ""
+    )
 
-    } else {
-      if (BGNPOW$channel == "stereo") {
-        BGNQleft <- apply(BGNPOW$left$BGN, 2, function(n)
-          setNames(
-            quantile(n, probs = seq(bgnthr[1], bgnthr[2], bgnthr[3])),
-            seq(bgnthr[1], bgnthr[2], bgnthr[3])
-          ))
+    if (!is.null(backup) && soundfile %% 5 == 1) {
+      SATdf$ogARGS$concluded <- soundfile
 
-        BGNQright <- apply(BGNPOW$right$BGN, 2, function(n)
-          setNames(
-            quantile(n, probs = seq(bgnthr[1], bgnthr[2], bgnthr[3])),
-            seq(bgnthr[1], bgnthr[2], bgnthr[3])
-          ))
-
-        BGNsaturation <- list(
-          left = sapply(colnames(BGNQleft), function(Q) {
-            list(sapply(BGNQleft[, Q], function(P)
-              P < BGNPOW$left$BGN[, Q]))
-          }),
-          right = sapply(colnames(BGNQright), function(Q) {
-            list(sapply(BGNQright[, Q], function(P)
-              P < BGNPOW$right$BGN[, Q]))
-          })
-        )
-
-        POWsaturation <- sapply(c("left", "right"), function(side) {
-          list(sapply(colnames(BGNPOW[[side]][["POW"]]), function(Q) {
-            list(sapply(powthreshold, function(P)
-              P < BGNPOW[[side]][["POW"]][, Q]))
-          }))
-        })
-
-        singsat <- do.call(rbind, sapply(c("left", "right"), function(side) {
-          list(
-            mapply(
-              function(bgnthresh, powthresh) {
-                sapply(1:length(BGNPOW$timeBins), function(i) {
-                  sum(BGNsaturation[[side]][[paste0("BGN", i)]][, paste(bgnthresh)] |
-                        POWsaturation[[side]][[paste0("POW", i)]][, paste(powthresh)]) / halfWl
-                })
-              },
-              thresholdCombinations$bgnthreshold,
-              thresholdCombinations$powthreshold
-            )
-          )
-
-        }))
-
-        binsUnique <- paste(rep(c('left', 'right'), each = nrow(singsat) /
-                                  2), seq(nrow(singsat) / 2), sep = "_")
-
-        DURATION <- rep(BGNPOW$timeBins, 2)
-        SAMPRATE <- BGNPOW$sampRate
-
-      } else if (BGNPOW$channel == "mono") {
-        BGNQ <- apply(BGNPOW$mono$BGN, 2, function(n)
-          setNames(
-            quantile(n, probs = seq(bgnthr[1], bgnthr[2], bgnthr[3])),
-            seq(bgnthr[1], bgnthr[2], bgnthr[3])
-          ))
-
-        BGNsaturation <- list(mono = sapply(colnames(BGNQ), function(Q) {
-          list(sapply(BGNQ[, Q], function(P)
-            P < BGNPOW$mono$BGN[, Q]))
-        }))
-
-        POWsaturation <- list(mono = sapply(colnames(BGNPOW$mono$POW), function(Q) {
-          list(sapply(powthreshold, function(P)
-            P < BGNPOW$mono$POW[, Q]))
-        }))
-
-
-        singsat <- mapply(
-          function(bgnthresh, powthresh) {
-            sapply(1:length(BGNPOW$timeBins), function(i) {
-              sum(BGNsaturation$mono[[paste0("BGN", i)]][, paste(bgnthresh)] |
-                    POWsaturation$mono[[paste0("POW", i)]][, paste(powthresh)]) / halfWl
-            })
-          },
-          thresholdCombinations$bgnthreshold,
-          thresholdCombinations$powthreshold
-        )
-
-        binsUnique <- paste("mono", seq(nrow(singsat)), sep = "_")
-
-        DURATION <- BGNPOW$timeBins
-        SAMPRATE <- BGNPOW$sampRate
-
-      } else {
-        realChannel <- c("left", "right")[c("left", "right") %in% names(BGNPOW)]
-
-        BGNQ <- apply(BGNPOW[[realChannel]][["BGN"]], 2, function(n)
-          setNames(
-            quantile(n, probs = seq(bgnthr[1], bgnthr[2], bgnthr[3])),
-            seq(bgnthr[1], bgnthr[2], bgnthr[3])
-          ))
-
-        BGNsaturation <- setNames(list(sapply(colnames(BGNQ), function(Q) {
-          list(sapply(BGNQ[, Q], function(P)
-            P < BGNPOW[[realChannel]][["BGN"]][, Q]))
-        })), realChannel)
-
-        POWsaturation <- setNames(list(sapply(colnames(BGNPOW[[realChannel]][['POW']]), function(Q) {
-          list(sapply(powthreshold, function(P)
-            P < BGNPOW[[realChannel]][['POW']][, Q]))
-        })), realChannel)
-
-
-        singsat <- mapply(
-          function(bgnthresh, powthresh) {
-            sapply(1:length(BGNPOW$timeBins), function(i) {
-              sum(BGNsaturation[[realChannel]][[paste0("BGN", i)]][, paste(bgnthresh)] |
-                    POWsaturation[[realChannel]][[paste0("POW", i)]][, paste(powthresh)]) / halfWl
-            })
-          },
-          thresholdCombinations$bgnthreshold,
-          thresholdCombinations$powthreshold
-        )
-
-        binsUnique <- paste(realChannel, seq(nrow(singsat)), sep = "_")
-
-        DURATION <- BGNPOW$timeBins
-        SAMPRATE <- BGNPOW$sampRate
-
-      }
-
-      message(
-        "\r(",
-        basename(soundfile),
-        ") ",
-        match(soundfile, soundfiles),
-        " out of ",
-        length(soundfiles),
-        " recordinds concluded!",
-        sep = ""
-      )
-
-      gc()
-
-      list(
-        SAT = singsat,
-        DUR = DURATION,
-        SMP = SAMPRATE,
-        BIN = binsUnique,
-        NAME = soundfile
-      )
-
-    }
-
-    if (!is.null(backup) && fiveSteps %% 5 == 0) {
       saveRDS(SATdf, file = paste0(backup, "/SATBACKUP.RData"))
     }
 
   }
 
-  if (!is.null(backup)) {
-    SATdf["ogARGS"] <- NULL
-    file.remove(paste0(backup, "/SATBACKUP.RData"))
+  whichError <- sapply(SATdf[["indexes"]], function(x) {
+    is(x, "error")
+  })
+
+  ERRORS <- SATdf$indexes[whichError]
+  indexes <- SATdf$indexes[!whichError]
+
+  BGN <- do.call(cbind, sapply(indexes, function(x) {
+    if (x$channel == "stereo") {
+      cbind(x$values$left$BGN, x$values$right$BGN)
+    } else {
+      x$values[[x$channel]]$BGN
+    }
+  }))
+
+  POW <- do.call(cbind, sapply(indexes, function(x) {
+    if (x$channel == "stereo") {
+      cbind(x$values$left$POW, x$values$right$POW)
+    } else {
+      x$values[[x$channel]]$POW
+    }
+  }))
+
+  INFO <- lapply(indexes, function(x) {
+    nBins <- length(x$timeBins)
+    if (x$channel == "stereo") {
+      list(
+        rep(x$timeBins, each = 2),
+        rep(x$sampRate, length(x$timeBins) * 2),
+        rep(1:length(x$timeBins), 2),
+        rep(c("left", "right"), each = nBins)
+      )
+    } else {
+      list(
+        x$timeBins,
+        rep(x$sampRate, length(x$timeBins)),
+        1:length(x$timeBins),
+        rep(x$channel, nBins)
+      )
+    }
+  })
+
+  paths <- unlist(sapply(indexes, function(x) {
+    if (x$channel == "stereo") {
+      rep(x$path, length(x$timeBins) * 2)
+    } else {
+      rep(x$path, length(x$timeBins))
+    }
+  }))
+
+  SATinfo <- data.frame(
+    PATH = dirname(paths),
+    AUDIO = basename(paths),
+    CHANNEL = c(unlist(sapply(INFO, function(x) {
+      x[[4]]
+    }))),
+    DURATION = c(unlist(sapply(INFO, function(x) {
+      x[[1]]
+    }))),
+    BIN = c(unlist(sapply(INFO, function(x) {
+      x[[3]]
+    }))),
+    SAMPRATE = c(unlist(sapply(INFO, function(x) {
+      x[[2]]
+    }))),
+    SAT = NA
+  )
+
+  dimBGN <- dim(BGN)
+
+  if (beta) {
+    BGNQ <- quantile(unlist(BGN), probs = seq(bgnthr[1], bgnthr[2], bgnthr[3])) |>
+      setNames(bgnthreshold)
+
+    SATmat <- mapply(
+      function(bgnthresh, powthresh) {
+        sapply(1:ncol(BGN), function(t) {
+          sum(BGN[, t] > BGNQ[names(BGNQ) == bgnthresh] |
+                POW[, t] > powthresh) / halfWl
+
+        })
+
+      },
+      thresholdCombinations$bgnthreshold,
+      thresholdCombinations$powthreshold
+    )
+
+  } else {
+    SATmat <- mapply(
+      function(bgnthresh, powthresh) {
+        sapply(1:ncol(BGN), function(t) {
+          sum(BGN[, t] > quantile(BGN[, t], bgnthresh) |
+                POW[, t] > powthresh) / halfWl
+
+        })
+
+      },
+      thresholdCombinations$bgnthreshold,
+      thresholdCombinations$powthreshold
+    )
+
   }
 
-  which.error <- sapply(SATdf, function(x)
-    is(x, "error"))
-  ERRORS <- SATdf[which.error]
-  DURATIONS <- c(unlist(sapply(SATdf[!which.error], function(x)
-    x[["DUR"]])))
-  SAMPRATES <- c(unlist(sapply(SATdf[!which.error], function(x)
-    rep(x[["SMP"]], length(
-      x[["BIN"]]
-    )))))
-  PATHS <- c(unlist(sapply(SATdf[!which.error], function(x)
-    rep(x[["NAME"]], length(
-      x[["BIN"]]
-    )))))
-  BINS <- c(unlist(sapply(SATdf[!which.error], function(x)
-    x[["BIN"]])))
-  SATdf <- do.call(rbind, lapply(SATdf[!which.error], function(x)
-    x[["SAT"]]))
+  colnames(SATmat) <- combinations
 
-  colnames(SATdf) <- combinations
-
-  normal <- apply(SATdf, 2, function(Q) {
+  normal <- apply(SATmat, 2, function(Q) {
     if (length(unique(Q)) != 1) {
       do.call(normality, list(Q))$statistic
     } else {
@@ -465,27 +424,27 @@ soundSat <- function(soundpath,
     sep = ""
   )
 
+  if (!is.null(backup)) {
+    SATdf["ogARGS"] <- NULL
+    file.remove(paste0(backup, "/SATBACKUP.RData"))
+  }
+
+  SATinfo$SAT <- SATmat[, which(normal == normOUT)]
+
   export <- list(
     powthresh = numeric(0),
     bgntresh = numeric(0),
-    normality = numeric(0),
+    normality = list(),
     values = data.frame(),
-    errors = data.frame()
+    errors = list()
   )
 
   export["powthresh"] <- as.numeric(thresholds[1])
   export["bgntresh"] <- as.numeric(thresholds[2]) * 100
-  export["normality"] <- normOUT
-  export[["values"]] <- data.frame(
-    PATH = dirname(PATHS),
-    AUDIO = basename(PATHS),
-    BIN = BINS,
-    DURATION = DURATIONS,
-    SAMPRATE = SAMPRATES,
-    SAT = SATdf[, which(normOUT == normal)],
-    row.names = NULL
-  )
-  export[["errors"]] <- data.frame(file = soundfiles[which.error], do.call(rbind, ERRORS))
+  export[["normality"]]["test"] <- normality
+  export[["normality"]]["statistic"] <- normOUT
+  export[["values"]] <- SATinfo
+  export[["errors"]] <- ERRORS
 
   return(export)
 

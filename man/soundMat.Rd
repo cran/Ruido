@@ -16,46 +16,47 @@ soundMat(
   histbreaks = "FD",
   powthr = c(5, 20, 1),
   bgnthr = c(0.5, 0.9, 0.05),
+  beta = TRUE,
   backup = NULL
 )
 }
 \arguments{
-\item{soundpath}{single directory or multiple directory to audio files. The directory must lead to a single folder or a combination of folders.}
+\item{soundpath}{single or multiple directories to your audio files}
 
 \item{channel}{channel where the saturation values will be extract from. Available channels are: \code{"stereo"}, \code{"mono"}, \code{"left"} or \code{"right"}. Defaults to \code{"stereo"}.}
 
-\item{timeBin}{size (in seconds) of the time bin. Defaults to \code{60}.}
+\item{timeBin}{size (in seconds) of the time bin. Set to \code{NULL} to use the entire audio as a single bin. Defaults to \code{60}}
 
-\item{dbThreshold}{minimum allowed value of dB for the spectrograms. Defaults to \code{-90}, as set by Towsey.}
+\item{dbThreshold}{minimum allowed value of dB for the spectrograms. Defaults to \code{-90}, as set by Towsey 2017}
 
-\item{targetSampRate}{sample rate of the audios. Defaults to \code{NULL} to not change the sample rate. This argument is only used to down sample the audio.}
+\item{targetSampRate}{desired sample rate of the audios.  This argument is only used to down sample the audio. If \code{NULL}, then audio's sample rate remains the same. Defaults to \code{NULL}}
 
-\item{wl}{window length of the spectrogram. Defaults to \code{512}.}
+\item{wl}{window length of the spectrogram. Defaults to \code{512}}
 
-\item{window}{window used to smooth the spectrogram. Defaults to \code{signal::hammning(wl)}. Switch to \code{signal::hanning(wl)} if to use hanning instead.}
+\item{window}{window used to smooth the spectrogram. Switch to \code{signal::hanning(wl)} to use hanning instead. Defaults to \code{signal::hammning(wl)}}
 
 \item{overlap}{overlap between the spectrogram windows. Defaults to \code{wl/2} (half the window length)}
 
-\item{histbreaks}{breaks used to calculate Background Noise. Available breaks are: \code{"FD"}, \code{"Sturges"}, \code{"scott"} and \code{100}. Defaults to \code{"FD"}.
-\if{html}{\out{<br>}}Can also be set to any number to limit or increase the amount of breaks.}
+\item{histbreaks}{breaks used to calculate Background Noise. Available breaks are: \code{"FD"}, \code{"Sturges"}, \code{"scott"} or any numeric value (foe example = \code{100}). Defaults to \code{"FD"}}
 
-\item{powthr}{vector of values to evaluate the activity matrix for Soundscape Power (in dB). The first value corresponds to the lowest dB value and the second corresponds to the highest, the third value is the step.
-\if{html}{\out{<br>}}Defaults to \code{c(5, 20, 1)}, which means the first thresholds starts at 5dB and jumps a whole number till 20dB.}
+\item{powthr}{numeric vector of length three containing the the range of thresholds used to evaluate the Soundscape Power of the  Activity Matrix (in dB). The values correspond to the minimum threshold, maximum threshold and step size respectively.
+\if{html}{\out{<br>}} Defaults to \code{c(5, 20, 1)}, which evaluates thresholds from 5 dB to 20 dB in increments of 1 dB}
 
-\item{bgnthr}{vector of values to evaluate the activity matrix for Background Noise (in \%). The first value corresponds to the lowest quantile value and the second corresponds to the highest, the third value is the step.
-\if{html}{\out{<br>}}Defaults to \code{c(0.5, 0.9, 0.05)}, which means the first thresholds starts at 50\% and jumps 5\% till 90\%.}
+\item{bgnthr}{numeric vector of length three containing the the range of thresholds used to evaluate the Background Noise of the  Activity Matrix (in \%). The values correspond to the minimum threshold, maximum threshold and step size respectively.
+\if{html}{\out{<br>}} Defaults to \code{c(0.5, 0.9, 0.05)}, which evaluates thresholds from 50\% to 90\% in increments of 5\%}
 
-\item{backup}{path to backup the saturation values in case the computer is turned off during processing or in case you cannot be sure the computer will be on for the entire process. Defaults to \code{NULL}.
-\if{html}{\out{<br>}}The backup will be updated every 5 recordings processed.}
+\item{beta}{how BGN thresholds are calculated. If \code{TRUE}, BGN thresholds are calculated using all recordings combined. If FALSE, BGN thresholds are calculated separately for each recording. Defaults to \code{TRUE}}
+
+\item{backup}{path to save the backup. Defaults to \code{NULL}}
 }
 \value{
-A list containing five objects. The first and second objects (powthresh and bgnthresh) are the threshold values that yielded the most normal distribution of saturation values using the normality test set by the user. The third (normality) contains the statitics values of the normality test that yielded the most normal distribution. The fourth object (values) contains a data.frame with the the values of saturation for each bin of each recording and the size of the bin in seconds. The fifth contains a data.frame with errors that occurred with specific files during the function.
+A list containing three objects. The first (info) contains the following variables from every audio file: PATH, AUDIO, CHANNEL, DURATION, BIN, SAMPRATE. The second (values) contains saturation values from all possible threshold combinations. The third (errors) contains the error messages and the paths to the files that returned an error during processing.
 }
 \description{
 Get the Soundscape Saturation matrix with all threshold combinations instead of the combination with the most normal distribution
 }
 \details{
-Soundscape Saturation (\code{SAT}) is a measure of the proportion of frequency bins that are acoustically active in a determined window of time. It was developed by Burivalova et al. 2017 as an index to test the acoustic niche hypothesis.
+Soundscape Saturation (\code{SAT}) is a measure of the proportion of frequency bins that are acoustically active in a determined window of time. It was developed by Burivalova et al. 2018 as an index to test the acoustic niche hypothesis.
 To calculate this function, first we need to generate an activity matrix for each time bin of your recording with the following formula:
 
 \deqn{a_{mf} = 1\  if (BGN_{mf} > \theta_{1})\  or\  (POW_{mf} > \theta_{2});\  otherwise,\  a_{mf} = 0,}
@@ -68,13 +69,14 @@ For each combination of threshold a SAT measure will be taken with the following
 
 After these equations are done, we check every threshold combination for normality and pick the combination that yields the most normal distribution of saturation values.
 
-If you set a path for the "path" argument, a single rds file will be written in your path. This objects can be loaded again through the "satBack" function to continue the calculation of saturation in case the process is suddenly stopped.
+If \code{backup} is set to a valid directory, a file named \code{"SATBACKUP.RData"} is saved after every batch of five processed files. If the function execution is interrupted (e.g., manual termination, an R session crash, or a system shutdown), this backup file can be passed to \code{satBackup()} (e.g., \code{~path/SATBACKUP.RData}) to resume the original process. Once a backup is created, all arguments and file paths must remain unchanged, unless they are manually modified within the \code{.RData} object.
 }
 \examples{
 \donttest{
 oldpar <- par(no.readonly = TRUE)
 ### Downloading audiofiles from public Zenodo library
-dir <- tempdir()
+dir <- paste(tempdir(), "forExample", sep = "/")
+dir.create(dir)
 recName <- paste0("GAL24576_20250401_", sprintf("\%06d", seq(0, 200000, by = 50000)), ".wav")
 recDir <- paste(dir, recName, sep = "/")
 
@@ -90,12 +92,12 @@ for (rec in recName) {
 sat <- soundMat(dir)
 
 ### Plotting results
-sides <- ifelse(grepl("left", sat$info$BIN), "left", "right")
+sides <- sat$info$CHANNEL
 
-thresholds <- colnames(sat$matrix)
+thresholds <- colnames(sat$values)
 split <- strsplit(thresholds, "/")
 
-shapNorm <- apply(sat$matrix, 2, function(x)
+shapNorm <- apply(sat$values, 2, function(x)
 
   if (var(x) == 0) {
     0
@@ -108,31 +110,31 @@ shapPos <- which.max(shapNorm)
 par(mfrow = c(3, 2))
 
 plot(
-  sat$matrix[sides == "left", 1],
+  sat$values[sides == "left", 1],
   main = paste0("POW = ", split[[1]][1], "dB | BGN = ", split[[1]][2], "\%"),
   type = "b",
   ylim = c(0,1),
   xlab = "Time Index", ylab = "Soundsacpe Saturation (\%)", col = "goldenrod"
 )
-points(sat$matrix[sides == "right", 1], col = "maroon", type = "b")
+points(sat$values[sides == "right", 1], col = "maroon", type = "b")
 
-hist(sat$matrix[,1], main = paste("Histogram of POW = ", split[[1]][1],
+hist(sat$values[,1], main = paste("Histogram of POW = ", split[[1]][1],
 "dB | BGN = ", split[[1]][2], "\%"), xlab = "Soundscape Saturation (\%)")
 
 plot(
-sat$matrix[sides == "left", 144],
+sat$values[sides == "left", 144],
 main = paste0("POW = ", split[[144]][1], "dB | BGN = ", split[[144]][2], "\%"),
 type = "b",
 ylim = c(0,1),
 xlab = "Time Index", ylab = "Soundsacpe Saturation (\%)", col = "goldenrod"
 )
-points(sat$matrix[sides == "right", 144], col = "maroon", type = "b")
+points(sat$values[sides == "right", 144], col = "maroon", type = "b")
 
-hist(sat$matrix[,144], main = paste("Histogram of POW = ", split[[144]][1],
+hist(sat$values[,144], main = paste("Histogram of POW = ", split[[144]][1],
 "dB | BGN = ", split[[144]][2], "\%"), xlab = "Soundscape Saturation (\%)")
 
 plot(
-  sat$matrix[sides == "left", shapPos],
+  sat$values[sides == "left", shapPos],
   main = paste0(
     "POW = ",
     split[[shapPos]][1],
@@ -146,15 +148,15 @@ plot(
   ylim = c(0,1),
   xlab = "Time Index", ylab = "Soundsacpe Saturation (\%)", col = "goldenrod"
 )
-points(sat$matrix[sides == "right", shapPos], col = "maroon", type = "b")
-hist(sat$matrix[,shapPos], main = paste("Histogram of POW = ",
+points(sat$values[sides == "right", shapPos], col = "maroon", type = "b")
+hist(sat$values[,shapPos], main = paste("Histogram of POW = ",
 split[[shapPos]][1], "dB | BGN = ", split[[shapPos]][2], "\%"),
 xlab = "Soundscape Saturation (\%)")
 
-unlink(recDir)
+unlink(dir, recursive = TRUE)
 par(oldpar)
 }
 }
 \references{
-Burivalova, Z., Towsey, M., Boucher, T., Truskinger, A., Apelis, C., Roe, P., & Game, E. T. (2017). Using soundscapes to detect variable degrees of human influence on tropical forests in Papua New Guinea. Conservation Biology, 32(1), 205-215. https://doi.org/10.1111/cobi.12968
+Burivalova, Z., Towsey, M., Boucher, T., Truskinger, A., Apelis, C., Roe, P., & Game, E. T. (2018). Using soundscapes to detect variable degrees of human influence on tropical forests in Papua New Guinea. Conservation Biology, 32(1), 205-215. https://doi.org/10.1111/cobi.12968
 }
