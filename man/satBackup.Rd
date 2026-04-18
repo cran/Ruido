@@ -7,18 +7,18 @@
 satBackup(backup)
 }
 \arguments{
-\item{backup}{path to the .RData file create by the backup of soundSat or soundMat}
+\item{backup}{path to the \code{.RData} file create by the backup of soundSat, soundMat or multActivity}
 }
 \value{
-This functions returns the same output of \code{soundSat()}, \code{soundMat()} or \code{multActivity()}
+This functions returns the same output of \code{\link[=soundSat]{soundSat()}}, \code{\link[=soundMat]{soundMat()}} or \code{\link[=multActivity]{multActivity()}}
 }
 \description{
-This function is a way to continue an unfinished process of the \code{soundSat()}, \code{soundMat()} or \code{multActivity()} functions through a backup file.
-Arguments can't be inputted nor changed since the function will automatically load them from the \code{.RData} files. However you may manually change them (not recomended)
+This function offers a way to continue an unfinished process of the \code{\link[=soundSat]{soundSat()}}, \code{\link[=soundMat]{soundMat()}} or \code{\link[=multActivity]{multActivity()}} functions through a backup file.
+Arguments can't be inputted nor changed since the function will automatically load them from the \code{.RData} file. However you may manually change them by editing the file (not recommended).
 }
 \examples{
 \dontrun{
-# It's impossible to create a functioning example since you would have to manually stop the process
+# It's impossible to demonstrate this function's intended use due to it's nature
 # However, here is how this function is used:
 ## This example will load an entire day of audios to your computer, so beware.
 

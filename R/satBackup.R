@@ -1,20 +1,20 @@
 #' @title Backup for Ruido's functions
 #'
-#' @param backup path to the .RData file create by the backup of soundSat or soundMat
+#' @param backup path to the `.RData` file create by the backup of soundSat, soundMat or multActivity
 #'
 #' @description
-#' This function is a way to continue an unfinished process of the `soundSat()`, `soundMat()` or `multActivity()` functions through a backup file.
-#' Arguments can't be inputted nor changed since the function will automatically load them from the `.RData` files. However you may manually change them (not recomended)
+#' This function offers a way to continue an unfinished process of the [soundSat()], [soundMat()] or [multActivity()] functions through a backup file.
+#' Arguments can't be inputted nor changed since the function will automatically load them from the `.RData` file. However you may manually change them by editing the file (not recommended).
 #'
 #' @returns
-#' This functions returns the same output of `soundSat()`, `soundMat()` or `multActivity()`
+#' This functions returns the same output of [soundSat()], [soundMat()] or [multActivity()]
 #'
 #' @export
 #' @importFrom stats window
 #'
 #' @examples
 #' \dontrun{
-#' # It's impossible to create a functioning example since you would have to manually stop the process
+#' # It's impossible to demonstrate this function's intended use due to it's nature
 #' # However, here is how this function is used:
 #' ## This example will load an entire day of audios to your computer, so beware.
 #'
@@ -77,7 +77,7 @@ satBackup <- function(backup) {
       sPath <- soundfiles[[soundfile]]
 
       SATdf[["indexes"]][[soundfile]] <- tryCatch(
-        bgNoise(
+        bgNoise.(
           sPath,
           timeBin = timeBin,
           targetSampRate = targetSampRate,
@@ -86,13 +86,14 @@ satBackup <- function(backup) {
           channel = channel,
           dbThreshold = dbThreshold,
           wl = wl,
-          histbreaks = histbreaks
+          histbreaks = histbreaks,
+          DCfix = DCfix
         ),
         error = function(e)
           e
       )
 
-      SATdf[["indexes"]][[soundfile]][["path"]] <- sPath
+      SATdf[["indexes"]][[soundfile]]@path <- sPath
 
       message(
         "\r(",
@@ -101,7 +102,7 @@ satBackup <- function(backup) {
         match(soundfiles[soundfile], soundfiles),
         " out of ",
         length(soundfiles),
-        " recordinds concluded!",
+        " recordings concluded!",
         sep = ""
       )
 
@@ -123,45 +124,45 @@ satBackup <- function(backup) {
   indexes <- SATdf$indexes[!whichError]
 
   BGN <- do.call(cbind, sapply(indexes, function(x) {
-    if (x$channel == "stereo") {
-      cbind(x$values$left$BGN, x$values$right$BGN)
+    if (x@channel == "stereo") {
+      cbind(x@values$left$BGN, x@values$right$BGN)
     } else {
-      x$values[[x$channel]]$BGN
+      x@values[[x@channel]]$BGN
     }
   }))
 
   POW <- do.call(cbind, sapply(indexes, function(x) {
-    if (x$channel == "stereo") {
-      cbind(x$values$left$POW, x$values$right$POW)
+    if (x@channel == "stereo") {
+      cbind(x@values$left$POW, x@values$right$POW)
     } else {
-      x$values[[x$channel]]$POW
+      x@values[[x@channel]]$POW
     }
   }))
 
   INFO <- lapply(indexes, function(x) {
-    nBins <- length(x$timeBins)
-    if (x$channel == "stereo") {
+    nBins <- length(x@timeBins)
+    if (x@channel == "stereo") {
       list(
-        rep(x$timeBins, each = 2),
-        rep(x$sampRate, length(x$timeBins) * 2),
-        rep(1:length(x$timeBins), 2),
+        rep(x@timeBins, each = 2),
+        rep(x@sampRate, length(x@timeBins) * 2),
+        rep(1:length(x@timeBins), 2),
         rep(c("left", "right"), each = nBins)
       )
     } else {
       list(
-        x$timeBins,
-        rep(x$sampRate, length(x$timeBins)),
-        1:length(x$timeBins),
-        rep(x$channel, nBins)
+        x@timeBins,
+        rep(x@sampRate, length(x@timeBins)),
+        1:length(x@timeBins),
+        rep(x@channel, nBins)
       )
     }
   })
 
   paths <- unlist(sapply(indexes, function(x) {
-    if (x$channel == "stereo") {
-      rep(x$path, length(x$timeBins) * 2)
+    if (x@channel == "stereo") {
+      rep(x@path, length(x@timeBins) * 2)
     } else {
-      rep(x$path, length(x$timeBins))
+      rep(x@path, length(x@timeBins))
     }
   }))
 
@@ -299,14 +300,14 @@ satBackup <- function(backup) {
 
     export <- list(
       powthresh = numeric(0),
-      bgntresh = numeric(0),
+      bgnthresh = numeric(0),
       normality = list(),
       values = data.frame(),
       errors = list()
     )
 
     export["powthresh"] <- as.numeric(thresholds[1])
-    export["bgntresh"] <- as.numeric(thresholds[2]) * 100
+    export["bgnthresh"] <- as.numeric(thresholds[2]) * 100
     export[["normality"]]["test"] <- normality
     export[["normality"]]["statistic"] <- normOUT
     export[["values"]] <- SATinfo
@@ -327,14 +328,14 @@ satBackup <- function(backup) {
 
     export <- list(
       powthresh = numeric(0),
-      bgntresh = numeric(0),
+      bgnthresh = numeric(0),
       info = data.frame(),
       values = matrix(),
       errors = list()
     )
 
     export["powthresh"] <- powthr
-    export["bgntresh"] <- bgnthr * 100
+    export["bgnthresh"] <- bgnthr * 100
     export[["info"]] <- SATinfo
     export[["values"]] <- SATmat * 1
     export[["errors"]] <- ERRORS

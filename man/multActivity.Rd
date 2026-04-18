@@ -14,6 +14,7 @@ multActivity(
   window = signal::hamming(wl),
   overlap = ceiling(length(window)/2),
   histbreaks = "FD",
+  DCfix = TRUE,
   powthr = 10,
   bgnthr = 0.8,
   beta = TRUE,
@@ -27,7 +28,7 @@ multActivity(
 
 \item{timeBin}{size (in seconds) of the time bin. Set to \code{NULL} to use the entire audio as a single bin. Defaults to \code{60}}
 
-\item{dbThreshold}{minimum allowed value of dB for the spectrograms. Defaults to \code{-90}, as set by Towsey 2017}
+\item{dbThreshold}{minimum allowed value of dB for the spectrograms. Set to \code{NULL} to leave db values unrestricted Defaults to \code{-90}, as set by Towsey 2017}
 
 \item{targetSampRate}{desired sample rate of the audios.  This argument is only used to down sample the audio. If \code{NULL}, then audio's sample rate remains the same. Defaults to \code{NULL}}
 
@@ -37,11 +38,14 @@ multActivity(
 
 \item{overlap}{overlap between the spectrogram windows. Defaults to \code{wl/2} (half the window length)}
 
-\item{histbreaks}{breaks used to calculate Background Noise. Available breaks are: \code{"FD"}, \code{"Sturges"}, \code{"scott"} or any numeric value (foe example = \code{100}). Defaults to \code{"FD"}}
+\item{histbreaks}{breaks used to calculate Background Noise. Available breaks are: \code{"FD"}, \verb{"Sturges}", \code{"scott"} and \code{100}. Defaults to \code{"FD"}.
+\if{html}{\out{<br>}}Can also be set to any numerical value to limit or increase the amount of breaks.}
 
-\item{powthr}{single numeric value to calculate the activity matrix for soundscape power (in dB). Detauls to \code{10}}
+\item{DCfix}{if the DC offset should be removed before the metrics are calculated. Defaults to \code{TRUE}}
 
-\item{bgnthr}{single numeric value to calculate the activity matrix for background noise (in \%). Detauls to \code{0.8}}
+\item{powthr}{single numeric value to calculate the activity matrix for soundscape power (in dB). Defaults to \code{10}}
+
+\item{bgnthr}{single numeric value to calculate the activity matrix for background noise (in \%). Defaults to \code{0.8}}
 
 \item{beta}{how BGN thresholds are calculated. If \code{TRUE}, BGN thresholds are calculated using all recordings combined. If FALSE, BGN thresholds are calculated separately for each recording. Defaults to \code{TRUE}}
 
@@ -54,13 +58,13 @@ A list containing five objects. The first and second objects (powthresh and bgnt
 Calculate the Acoustic Activity Matrix used in the the calculation of Soundscape Saturation using Burivalova 2018 methodology for a set of recordings
 }
 \details{
-We generate an activity matrix using Burivalova 2018 methodology. For each time bin of the recording we apply the following formula:
+In this function, we only generate activity matrices for an directory using Burivalova 2018 methodology. For each time bin of the recording we apply the following formula:
 
 \deqn{a_{mf} = 1\  if (BGN_{mf} > \theta_{1})\  or\  (POW_{mf} > \theta_{2});\  otherwise,\  a_{mf} = 0,}
 
 Where \eqn{\theta_{1}} is the threshold of BGN values and \eqn{\theta_{2}} is a threshold of dB values. 1 = active and 0 = inactive.
 
-If \code{backup} is set to a valid directory, a file named \code{"SATBACKUP.RData"} is saved after every batch of five processed files. If the function execution is interrupted (e.g., manual termination, an R session crash, or a system shutdown), this backup file can be passed to \code{satBackup()} (e.g., \code{~path/SATBACKUP.RData}) to resume the original process. Once a backup is created, all arguments and file paths must remain unchanged, unless they are manually modified within the \code{.RData} object.
+If \code{backup} is set to a valid directory, a file named \code{"SATBACKUP.RData"} is saved after every batch of five processed files. If the function execution is interrupted (e.g., manual termination, an R session crash, or a system shutdown), this backup file can be passed to \code{satBackup()} (e.g., as \code{~path/SATBACKUP.RData}) to resume the original process. Once a backup is created, all arguments and file paths must remain unchanged, unless they are manually modified within the \code{.RData} object.
 }
 \examples{
 \donttest{
@@ -149,4 +153,7 @@ if (require("ggplot2") & require("patchwork")) {
 }
 \references{
 Burivalova, Z., Towsey, M., Boucher, T., Truskinger, A., Apelis, C., Roe, P., & Game, E. T. (2018). Using soundscapes to detect variable degrees of human influence on tropical forests in Papua New Guinea. Conservation Biology, 32(1), 205-215. https://doi.org/10.1111/cobi.12968
+}
+\seealso{
+\code{\link[=soundSat]{soundSat()}} and \code{\link[=soundMat]{soundMat()}} to get saturation values. Also, check \code{\link[=satBackup]{satBackup()}} if you are working with larger datasets and want some safety.
 }

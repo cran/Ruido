@@ -5,17 +5,19 @@
 #' @param soundfile tuneR Wave object or path to a valid audio
 #' @param channel channel where the saturation values will be extract from. Available channels are: `"stereo"`, `"mono"`, `"left"` or `"right"`. Defaults to `"stereo"`.
 #' @param timeBin size (in seconds) of the time bin. Set to `NULL` to use the entire audio as a single bin. Defaults to `60`
-#' @param dbThreshold minimum allowed value of dB for the spectrograms. Defaults to `-90`, as set by Towsey 2017
+#' @param dbThreshold minimum allowed value of dB for the spectrograms. Set to `NULL` to leave db values unrestricted Defaults to `-90`, as set by Towsey 2017
 #' @param targetSampRate desired sample rate of the audios.  This argument is only used to down sample the audio. If `NULL`, then audio's sample rate remains the same. Defaults to `NULL`
 #' @param wl window length of the spectrogram. Defaults to `512`
 #' @param window window used to smooth the spectrogram. Switch to `signal::hanning(wl)` to use hanning instead. Defaults to `signal::hammning(wl)`
 #' @param overlap overlap between the spectrogram windows. Defaults to `wl/2` (half the window length)
-#' @param histbreaks breaks used to calculate Background Noise. Available breaks are: `"FD"`, `"Sturges"`, `"scott"` or any numeric value (foe example = `100`). Defaults to `"FD"`
-#' @param powthr single numeric value to calculate the activity matrix for soundscape power (in dB). Detauls to `10`
-#' @param bgnthr single numeric value to calculate the activity matrix for background noise (in %). Detauls to `0.8`
+#' @param histbreaks breaks used to calculate Background Noise. Available breaks are: `"FD"`, `"Sturges`", `"scott"` and `100`. Defaults to `"FD"`.
+#' <br>Can also be set to any numerical value to limit or increase the amount of breaks.
+#' @param DCfix if the DC offset should be removed before the metrics are calculated. Defaults to `TRUE`
+#' @param powthr single numeric value to calculate the activity matrix for soundscape power (in dB). Defaults to `10`
+#' @param bgnthr single numeric value to calculate the activity matrix for background noise (in %). Defaults to `0.8`
 #' @param beta how BGN thresholds are calculated. If `TRUE`, BGN thresholds are calculated using all recordings combined. If FALSE, BGN thresholds are calculated separately for each recording. Defaults to `TRUE`
 #'
-#' @returns This function returns a 0 and 1 matrix containing the activity for all time bins of the inputted file. The matrix's number of rows will equal to half the set window lenght (`wl`) and number of columns will equal the number of bins. Cells with the value of 1 represent the acoustically active frequency of a bin.
+#' @returns This function returns a 0 and 1 matrix containing the activity for all time bins of the inputted file. The matrix's number of rows will equal to half the set window length (`wl`) and number of columns will equal the number of bins. Cells with the value of 1 represent the acoustically active frequency of a bin.
 #'
 #' @details To calculate the activity matrix, we use the methodology proposed by Burivalova 2018. We begin by applying the following formula to each time bin of the recording:
 #'
@@ -36,40 +38,21 @@
 #'
 #' @examples
 #' if (require("ggplot2")) {
-#' ### Generating an artificial audio for the example
-#' ## For this example we'll generate a sweep in a noisy soundscape
-#' library(tuneR)
 #' library(ggplot2)
+#' # We are going to load a sample noise.matrix object to demonstrate the basic usage of singleSat()
+#' # To understand about the origin of this noise.matrix, check: ?sampleBGN
+#' data("sampleBGN")
 #'
-#' # Define parameters for the artificial audio
-#' samprate <- 12050
-#' dur <- 60
-#' n <- samprate * dur
+#' # View the sample noise.matrix object
+#' sampleBGN
 #'
-#' # White noise
-#' set.seed(413)
-#' noise <- rnorm(n)
+#' # Run the function
+#' sat <- activity(sampleBGN)
 #'
-#' # Linear fade-out envelope
-#' fade <- seq(1, 0, length.out = n)
-#'
-#' # Apply fade
-#' signal <- noise * fade
-#'
-#' # Create Wave object
-#' wave <- Wave(
-#'   left = signal,
-#'   samp.rate = samprate,
-#'   bit = 16
-#' )
-#'
-#' # Running singleSat() on the artificial audio
-#' time <- 10
-#' sat <- activity(wave, timeBin = time)
-#'
-#' # Now we can plot the results
-#' satDim <- dim(sat)
-#' numericTime <- seq(0, dur, by = time)
+#' # Now we can plot the results for the left channel
+#' satLeft <- sat[,1:3]
+#' satDim <- dim(satLeft)
+#' numericTime <- seq(0, sum(sampleBGN@timeBins), by = sampleBGN@timeBins[1])
 #' labels <- paste0(numericTime[-length(numericTime)], "-", numericTime[-1], "s")
 #'
 #' satDF <- data.frame(BIN = rep(paste0("BIN", seq(satDim[2])), each = satDim[1]),
@@ -87,59 +70,55 @@
 #'
 #' }
 activity <- function(soundfile,
-                     channel = "stereo",
-                     timeBin = 60,
-                     dbThreshold = -90,
-                     targetSampRate = NULL,
-                     wl = 512,
-                     window = signal::hamming(wl),
-                     overlap = ceiling(length(window) / 2),
-                     histbreaks = "FD",
-                     powthr = 10,
-                     bgnthr = 0.8,
-                     beta = TRUE) {
-  if (!(channel %in% c("left", "right", "stereo", "mono")))
-    stop("channel must be 'stereo', 'mono', 'left', or 'right'")
+                       channel = "stereo",
+                       timeBin = 60,
+                       dbThreshold = -90,
+                       targetSampRate = NULL,
+                       wl = 512,
+                       window = signal::hamming(wl),
+                       overlap = ceiling(length(window) / 2),
+                       histbreaks = "FD",
+                       DCfix = TRUE,
+                       powthr = 10,
+                       bgnthr = 0.8,
+                       beta = TRUE) {
 
-  if (!is.numeric(timeBin))
-    stop("timeBin must be numeric")
-
-  if (!is.numeric(dbThreshold))
-    stop("timeBin must be numeric")
-
-  if (!is.null(targetSampRate)) {
-    if (!is.numeric(targetSampRate))
-      stop("targetSampRate must be either NULL or a numeric value")
-  }
+    argHandler(FUN = "activity", channel, timeBin, dbThreshold, targetSampRate, wl,
+               window, overlap, histbreaks, DCfix, powthr, bgnthr, beta)
 
   halfWl <- round(wl / 2)
 
-  BGNPOW <- bgNoise(
-    soundfile,
-    timeBin = timeBin,
-    targetSampRate = targetSampRate,
-    window = window,
-    overlap = overlap,
-    channel = channel,
-    dbThreshold = dbThreshold,
-    wl = wl,
-    histbreaks = histbreaks
-  )
-
-  nBins <- length(BGNPOW$timeBins)
-
-  if (BGNPOW$channel == "stereo") {
-    BGN <- cbind(BGNPOW$values$left$BGN, BGNPOW$values$right$BGN)
-    names <- paste0(rep(c("left", "right"), each = nBins), seq(nBins))
+  BGNPOW <- if(is(soundfile, "noise.matrix")) {
+    soundfile
   } else {
-    BGN <- BGNPOW$values[[BGNPOW$channel]]$BGN
-    names <- paste0(rep(BGNPOW$channel, nBins), seq(nBins))
+    bgNoise.(
+      soundfile,
+      timeBin = timeBin,
+      targetSampRate = targetSampRate,
+      window = window,
+      overlap = overlap,
+      channel = channel,
+      dbThreshold = dbThreshold,
+      wl = wl,
+      histbreaks = histbreaks,
+      DCfix
+    )
   }
 
-  if (BGNPOW$channel == "stereo") {
-    POW <- cbind(BGNPOW$values$left$POW, BGNPOW$values$right$POW)
+  nBins <- length(BGNPOW@timeBins)
+
+  if (BGNPOW@channel == "stereo") {
+    BGN <- cbind(BGNPOW@values$left$BGN, BGNPOW@values$right$BGN)
+    names <- paste0(rep(c("left", "right"), each = nBins), seq(nBins))
   } else {
-    POW <- BGNPOW$values[[BGNPOW$channel]]$POW
+    BGN <- BGNPOW@values[[BGNPOW@channel]]$BGN
+    names <- paste0(rep(BGNPOW@channel, nBins), seq(nBins))
+  }
+
+  if (BGNPOW@channel == "stereo") {
+    POW <- cbind(BGNPOW@values$left$POW, BGNPOW@values$right$POW)
+  } else {
+    POW <- BGNPOW@values[[BGNPOW@channel]]$POW
   }
 
   if (beta) {
@@ -155,6 +134,7 @@ activity <- function(soundfile,
 
   }
 
+  # The purpose of the "* 1" is to convert the values from logical to numerical (0 = FALSE and 1 = TRUE)
   return(singSat * 1)
 
 }

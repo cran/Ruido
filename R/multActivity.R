@@ -5,26 +5,30 @@
 #' @param soundpath single or multiple directories to your audio files
 #' @param channel channel where the saturation values will be extract from. Available channels are: `"stereo"`, `"mono"`, `"left"` or `"right"`. Defaults to `"stereo"`.
 #' @param timeBin size (in seconds) of the time bin. Set to `NULL` to use the entire audio as a single bin. Defaults to `60`
-#' @param dbThreshold minimum allowed value of dB for the spectrograms. Defaults to `-90`, as set by Towsey 2017
+#' @param dbThreshold minimum allowed value of dB for the spectrograms. Set to `NULL` to leave db values unrestricted Defaults to `-90`, as set by Towsey 2017
 #' @param targetSampRate desired sample rate of the audios.  This argument is only used to down sample the audio. If `NULL`, then audio's sample rate remains the same. Defaults to `NULL`
 #' @param wl window length of the spectrogram. Defaults to `512`
 #' @param window window used to smooth the spectrogram. Switch to `signal::hanning(wl)` to use hanning instead. Defaults to `signal::hammning(wl)`
 #' @param overlap overlap between the spectrogram windows. Defaults to `wl/2` (half the window length)
-#' @param histbreaks breaks used to calculate Background Noise. Available breaks are: `"FD"`, `"Sturges"`, `"scott"` or any numeric value (foe example = `100`). Defaults to `"FD"`
-#' @param powthr single numeric value to calculate the activity matrix for soundscape power (in dB). Detauls to `10`
-#' @param bgnthr single numeric value to calculate the activity matrix for background noise (in %). Detauls to `0.8`
+#' @param histbreaks breaks used to calculate Background Noise. Available breaks are: `"FD"`, `"Sturges`", `"scott"` and `100`. Defaults to `"FD"`.
+#' <br>Can also be set to any numerical value to limit or increase the amount of breaks.
+#' @param DCfix if the DC offset should be removed before the metrics are calculated. Defaults to `TRUE`
+#' @param powthr single numeric value to calculate the activity matrix for soundscape power (in dB). Defaults to `10`
+#' @param bgnthr single numeric value to calculate the activity matrix for background noise (in %). Defaults to `0.8`
 #' @param beta how BGN thresholds are calculated. If `TRUE`, BGN thresholds are calculated using all recordings combined. If FALSE, BGN thresholds are calculated separately for each recording. Defaults to `TRUE`
 #' @param backup directory to save the backup. Defaults to `NULL`
 #'
 #' @returns A list containing five objects. The first and second objects (powthresh and bgnthresh) are the threshold values inputted as arguments into the function. The third (info) contains the following variables from every audio file: PATH, AUDIO, CHANNEL, DURATION, BIN, SAMPRATE.. The fourth object (values) contains a matrix with the the values of activity for each bin of each recording and the size of the bin in seconds. The fifth contains a list with errors that occurred with specific files during the function.
 #'
-#' @details We generate an activity matrix using Burivalova 2018 methodology. For each time bin of the recording we apply the following formula:
+#' @details In this function, we only generate activity matrices for an directory using Burivalova 2018 methodology. For each time bin of the recording we apply the following formula:
 #'
 #'\deqn{a_{mf} = 1\  if (BGN_{mf} > \theta_{1})\  or\  (POW_{mf} > \theta_{2});\  otherwise,\  a_{mf} = 0,}
 #'
 #'Where \eqn{\theta_{1}} is the threshold of BGN values and \eqn{\theta_{2}} is a threshold of dB values. 1 = active and 0 = inactive.
 #'
-#' If `backup` is set to a valid directory, a file named `"SATBACKUP.RData"` is saved after every batch of five processed files. If the function execution is interrupted (e.g., manual termination, an R session crash, or a system shutdown), this backup file can be passed to `satBackup()` (e.g., `~path/SATBACKUP.RData`) to resume the original process. Once a backup is created, all arguments and file paths must remain unchanged, unless they are manually modified within the `.RData` object.
+#' If `backup` is set to a valid directory, a file named `"SATBACKUP.RData"` is saved after every batch of five processed files. If the function execution is interrupted (e.g., manual termination, an R session crash, or a system shutdown), this backup file can be passed to `satBackup()` (e.g., as `~path/SATBACKUP.RData`) to resume the original process. Once a backup is created, all arguments and file paths must remain unchanged, unless they are manually modified within the `.RData` object.
+#'
+#' @seealso [soundSat()] and [soundMat()] to get saturation values. Also, check [satBackup()] if you are working with larger datasets and want some safety.
 #'
 #'@references Burivalova, Z., Towsey, M., Boucher, T., Truskinger, A., Apelis, C., Roe, P., & Game, E. T. (2018). Using soundscapes to detect variable degrees of human influence on tropical forests in Papua New Guinea. Conservation Biology, 32(1), 205-215. https://doi.org/10.1111/cobi.12968
 #'
@@ -130,29 +134,14 @@ multActivity <- function(soundpath,
                          window = signal::hamming(wl),
                          overlap = ceiling(length(window) / 2),
                          histbreaks = "FD",
+                         DCfix = TRUE,
                          powthr = 10,
                          bgnthr = 0.8,
                          beta = TRUE,
                          backup = NULL) {
-  if (all(!dir.exists(soundpath)))
-    stop("all provided soundpaths must be valid")
 
-  if (!is.null(backup) && !dir.exists(backup))
-    stop("please provide a valid folder for backup")
-
-  if (!(channel %in% c("left", "right", "stereo", "mono")))
-    stop("channel must be 'stereo', 'mono', 'left', or 'right'")
-
-  if (!is.numeric(timeBin))
-    stop("timeBin must be numeric")
-
-  if (!is.numeric(dbThreshold))
-    stop("timeBin must be numeric")
-
-  if (!is.null(targetSampRate)) {
-    if (!is.numeric(targetSampRate))
-      stop("targetSampRate must be either NULL or a numeric value")
-  }
+  argHandler(FUN = "multActivity", soundpath, channel, timeBin, dbThreshold, targetSampRate, wl,
+             window, overlap, histbreaks, DCfix, powthr, bgnthr, beta, backup)
 
   soundfiles <- list.files(soundpath, full.names = TRUE, recursive = TRUE)
   soundfiles <- soundfiles[tolower(tools::file_ext(soundfiles)) %in% c("mp3", "wav")]
@@ -171,6 +160,7 @@ multActivity <- function(soundpath,
       window = window,
       overlap = overlap,
       histbreaks = histbreaks,
+      DCfix = DCfix,
       powthr = powthr,
       bgnthr = bgnthr,
       beta = beta,
@@ -190,7 +180,7 @@ multActivity <- function(soundpath,
     sPath <- soundfiles[[soundfile]]
 
     SATdf[["indexes"]][[soundfile]] <- tryCatch(
-      bgNoise(
+      bgNoise.(
         sPath,
         timeBin = timeBin,
         targetSampRate = targetSampRate,
@@ -199,13 +189,14 @@ multActivity <- function(soundpath,
         channel = channel,
         dbThreshold = dbThreshold,
         wl = wl,
-        histbreaks = histbreaks
+        histbreaks = histbreaks,
+        DCfix = DCfix
       ),
       error = function(e)
         e
     )
 
-    SATdf[["indexes"]][[soundfile]][["path"]] <- sPath
+    SATdf[["indexes"]][[soundfile]]@path <- sPath
 
     message(
       "\r(",
@@ -214,7 +205,7 @@ multActivity <- function(soundpath,
       match(soundfiles[soundfile], soundfiles),
       " out of ",
       length(soundfiles),
-      " recordinds concluded!",
+      " recordings concluded!",
       sep = ""
     )
 
@@ -234,45 +225,45 @@ multActivity <- function(soundpath,
   indexes <- SATdf$indexes[!whichError]
 
   BGN <- do.call(cbind, sapply(indexes, function(x) {
-    if (x$channel == "stereo") {
-      cbind(x$values$left$BGN, x$values$right$BGN)
+    if (x@channel == "stereo") {
+      cbind(x@values$left$BGN, x@values$right$BGN)
     } else {
-      x$values[[x$channel]]$BGN
+      x@values[[x@channel]]$BGN
     }
   }))
 
   POW <- do.call(cbind, sapply(indexes, function(x) {
-    if (x$channel == "stereo") {
-      cbind(x$values$left$POW, x$values$right$POW)
+    if (x@channel == "stereo") {
+      cbind(x@values$left$POW, x@values$right$POW)
     } else {
-      x$values[[x$channel]]$POW
+      x@values[[x@channel]]$POW
     }
   }))
 
   INFO <- lapply(indexes, function(x) {
-    nBins <- length(x$timeBins)
-    if (x$channel == "stereo") {
+    nBins <- length(x@timeBins)
+    if (x@channel == "stereo") {
       list(
-        rep(x$timeBins, each = 2),
-        rep(x$sampRate, length(x$timeBins) * 2),
-        rep(1:length(x$timeBins), 2),
+        rep(x@timeBins, each = 2),
+        rep(x@sampRate, length(x@timeBins) * 2),
+        rep(1:length(x@timeBins), 2),
         rep(c("left", "right"), each = nBins)
       )
     } else {
       list(
-        x$timeBins,
-        rep(x$sampRate, length(x$timeBins)),
-        1:length(x$timeBins),
-        rep(x$channel, nBins)
+        x@timeBins,
+        rep(x@sampRate, length(x@timeBins)),
+        1:length(x@timeBins),
+        rep(x@channel, nBins)
       )
     }
   })
 
   paths <- unlist(sapply(indexes, function(x) {
-    if (x$channel == "stereo") {
-      rep(x$path, length(x$timeBins) * 2)
+    if (x@channel == "stereo") {
+      rep(x@path, length(x@timeBins) * 2)
     } else {
-      rep(x$path, length(x$timeBins))
+      rep(x@path, length(x@timeBins))
     }
   }))
 
@@ -316,14 +307,14 @@ multActivity <- function(soundpath,
 
   export <- list(
     powthresh = numeric(0),
-    bgntresh = numeric(0),
+    bgnthresh = numeric(0),
     info = data.frame(),
     values = matrix(),
     errors = list()
   )
 
   export["powthresh"] <- powthr
-  export["bgntresh"] <- bgnthr * 100
+  export["bgnthresh"] <- bgnthr * 100
   export[["info"]] <- SATinfo
   export[["values"]] <- SATmat * 1
   export[["errors"]] <- ERRORS

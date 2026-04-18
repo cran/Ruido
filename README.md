@@ -2,7 +2,9 @@
 
 <img src="man/figures/ruidoIcon.png" alt="Icon of Ruido" align="right" height="300"/>
 
-[![CRANStatusBadge](https://www.r-pkg.org/badges/version-ago/Ruido)](https://cran.r-project.org/package=Ruido) ![packageDownloads](https://cranlogs.r-pkg.org/badges/grand-total/Ruido?color=blue) ![lastGitCommit](https://img.shields.io/github/last-commit/Arthurigorr/Ruido) [![status](https://joss.theoj.org/papers/111563e1b539962b9cee862782aaf4f6/status.svg)](https://joss.theoj.org/papers/111563e1b539962b9cee862782aaf4f6)
+[![CRANStatusBadge](https://www.r-pkg.org/badges/version-ago/Ruido)](https://cran.r-project.org/package=Ruido) ![packageDownloads](https://cranlogs.r-pkg.org/badges/grand-total/Ruido?color=blue)
+[![R-CMD-check](https://github.com/Arthurigorr/Ruido/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/Arthurigorr/Ruido/actions/workflows/R-CMD-check.yaml)
+![lastGitCommit](https://img.shields.io/github/last-commit/Arthurigorr/Ruido) [![Codecov test coverage](https://codecov.io/gh/Arthurigorr/Ruido/graph/badge.svg)](https://app.codecov.io/gh/Arthurigorr/Ruido)
 
 `Ruido` is an `R` package that aims to provide a simple and accessible framework for calculating less common soundscape metrics that describes noise dynamics. It provides accessible tools for calculating less common, but ecologically meaningful soundscape metrics, helping researchers move beyond standard and classic indices.
 
@@ -36,8 +38,7 @@ library(Ruido)
 
 ## Examples:
 
-To illustrate the package's use, we are going to use the recordings available at: <https://zenodo.org/records/17243660>.
-<br>Use <https://zenodo.org/records/17575795> to use lighter recordings.
+To illustrate the package's use, we are going to use the recordings available at: <https://zenodo.org/records/17243660>. <br>Use <https://zenodo.org/records/17575795> instead if you want to download lighter files.
 
 If you wish to temporary download the files using R to follow the examples, run:
 
@@ -75,7 +76,7 @@ date <- sapply(strsplit(recName, "_"), function(x)
   paste(substr(x[2], 1, 4), substr(x[2], 5, 6), substr(x[2], 7, 8), sep = "-"))
 
 dateTime <- as.POSIXct(paste(date, time))
-sampRate <- BGN_POW[[1]]$sampRate
+sampRate <- BGN_POW[[1]]@sampRate
 kHz <- cumsum(c(0, rep(sampRate / 6, 6))) / 1000
 breaks <- round(c(1, cumsum(rep(256 / 6, 6))))
 
@@ -88,10 +89,10 @@ plotN <- 1
 for (ind in c("BGN", "POW")) {
   for (cha in c("left", "right")) {
     core <- do.call(cbind, lapply(BGN_POW, function(x) {
-      x[[cha]][[ind]]
+      x@values[[cha]][[ind]]
     }))
     
-    dim(BGNLEFT)
+    sDim <- dim(core)
     
     coreDf <- data.frame(
       TIME = as.character(rep(dateTime, each = sDim[1] * 3) + rep(rep(c(0, 60, 120), each = sDim[1]), sDim[2] / 3)),
@@ -133,7 +134,7 @@ colnames(satForPlot)[c(3, 4)] <- c("sdSAT", "meanSAT")
 ggplot(
   satForPlot,
   aes(x = TIME, y = meanSAT * 100, group = CHANNEL, fill = CHANNEL,
-    ymin = pmax(meanSAT - sdSAT, 0) * 100, ymax = pmin(meanSAT + sdSAT, 100) * 100
+      ymin = pmax(meanSAT - sdSAT, 0) * 100, ymax = pmin(meanSAT + sdSAT, 100) * 100
   )
 ) +
   geom_ribbon(alpha = 0.5) +
@@ -153,12 +154,12 @@ ggplot(
   guides(fill = guide_legend(title = "Side"))
 ```
 
-<img src="paper/figures/SAT.png" align="center"/>
+<img src="man/figures/SAT.png" align="center"/>
 
 ### Acoustic Activity
 
 ``` r
-act <- multActivity(dir, powthr = sat$powthresh, bgnthr = sat$bgntresh / 100)
+act <- multActivity(dir, powthr = sat$powthresh, bgnthr = sat$bgnthresh / 100)
 
 time <- sapply(strsplit(recName, "_"), function(x)
   paste(substr(x[3], 1, 2), substr(x[3], 3, 4), substr(x[3], 5, 6), sep = ":"))

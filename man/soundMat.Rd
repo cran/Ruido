@@ -14,6 +14,7 @@ soundMat(
   window = signal::hamming(wl),
   overlap = ceiling(length(window)/2),
   histbreaks = "FD",
+  DCfix = TRUE,
   powthr = c(5, 20, 1),
   bgnthr = c(0.5, 0.9, 0.05),
   beta = TRUE,
@@ -27,7 +28,7 @@ soundMat(
 
 \item{timeBin}{size (in seconds) of the time bin. Set to \code{NULL} to use the entire audio as a single bin. Defaults to \code{60}}
 
-\item{dbThreshold}{minimum allowed value of dB for the spectrograms. Defaults to \code{-90}, as set by Towsey 2017}
+\item{dbThreshold}{minimum allowed value of dB for the spectrograms. Set to \code{NULL} to leave db values unrestricted Defaults to \code{-90}, as set by Towsey 2017}
 
 \item{targetSampRate}{desired sample rate of the audios.  This argument is only used to down sample the audio. If \code{NULL}, then audio's sample rate remains the same. Defaults to \code{NULL}}
 
@@ -37,7 +38,10 @@ soundMat(
 
 \item{overlap}{overlap between the spectrogram windows. Defaults to \code{wl/2} (half the window length)}
 
-\item{histbreaks}{breaks used to calculate Background Noise. Available breaks are: \code{"FD"}, \code{"Sturges"}, \code{"scott"} or any numeric value (foe example = \code{100}). Defaults to \code{"FD"}}
+\item{histbreaks}{breaks used to calculate Background Noise. Available breaks are: \code{"FD"}, \verb{"Sturges}", \code{"scott"} and \code{100}. Defaults to \code{"FD"}.
+\if{html}{\out{<br>}}Can also be set to any numerical value to limit or increase the amount of breaks.}
+
+\item{DCfix}{if the DC offset should be removed before the metrics are calculated. Defaults to \code{TRUE}}
 
 \item{powthr}{numeric vector of length three containing the the range of thresholds used to evaluate the Soundscape Power of the  Activity Matrix (in dB). The values correspond to the minimum threshold, maximum threshold and step size respectively.
 \if{html}{\out{<br>}} Defaults to \code{c(5, 20, 1)}, which evaluates thresholds from 5 dB to 20 dB in increments of 1 dB}
@@ -53,23 +57,12 @@ soundMat(
 A list containing three objects. The first (info) contains the following variables from every audio file: PATH, AUDIO, CHANNEL, DURATION, BIN, SAMPRATE. The second (values) contains saturation values from all possible threshold combinations. The third (errors) contains the error messages and the paths to the files that returned an error during processing.
 }
 \description{
-Get the Soundscape Saturation matrix with all threshold combinations instead of the combination with the most normal distribution
+Get the Soundscape Saturation matrix with all threshold combinations instead of the combination with the most normal distribution.
 }
 \details{
-Soundscape Saturation (\code{SAT}) is a measure of the proportion of frequency bins that are acoustically active in a determined window of time. It was developed by Burivalova et al. 2018 as an index to test the acoustic niche hypothesis.
-To calculate this function, first we need to generate an activity matrix for each time bin of your recording with the following formula:
+Check \code{\link[=soundSat]{soundSat()}} to see how the indices are calculated.
 
-\deqn{a_{mf} = 1\  if (BGN_{mf} > \theta_{1})\  or\  (POW_{mf} > \theta_{2});\  otherwise,\  a_{mf} = 0,}
-
-Where \eqn{\theta_{1}} is the threshold of BGN values and \eqn{\theta_{2}} is a threshold of dB values.
-Since we define a interval for both the threshold, this means that an activity matrix will be generated for each bin of each recording.
-For each combination of threshold a SAT measure will be taken with the following formula:
-
-\deqn{S_{m} = \frac{\sum_{f = 1}^N a_{mf}}{N}}
-
-After these equations are done, we check every threshold combination for normality and pick the combination that yields the most normal distribution of saturation values.
-
-If \code{backup} is set to a valid directory, a file named \code{"SATBACKUP.RData"} is saved after every batch of five processed files. If the function execution is interrupted (e.g., manual termination, an R session crash, or a system shutdown), this backup file can be passed to \code{satBackup()} (e.g., \code{~path/SATBACKUP.RData}) to resume the original process. Once a backup is created, all arguments and file paths must remain unchanged, unless they are manually modified within the \code{.RData} object.
+If \code{backup} is set to a valid directory, a file named \code{"SATBACKUP.RData"} is saved after every batch of five processed files. If the function execution is interrupted (e.g., manual termination, an R session crash, or a system shutdown), this backup file can be passed to \code{satBackup()} (e.g., as \code{~path/SATBACKUP.RData}) to resume the original process. Once a backup is created, all arguments and file paths must remain unchanged, unless they are manually modified within the \code{.RData} object.
 }
 \examples{
 \donttest{
@@ -159,4 +152,7 @@ par(oldpar)
 }
 \references{
 Burivalova, Z., Towsey, M., Boucher, T., Truskinger, A., Apelis, C., Roe, P., & Game, E. T. (2018). Using soundscapes to detect variable degrees of human influence on tropical forests in Papua New Guinea. Conservation Biology, 32(1), 205-215. https://doi.org/10.1111/cobi.12968
+}
+\seealso{
+\code{\link[=soundSat]{soundSat()}} to get only the threshold with the most normal distribution and \code{\link[=multActivity]{multActivity()}} to generate only activity matrices. Also, check \code{\link[=satBackup]{satBackup()}} if you are working with larger datasets and want some safety.
 }

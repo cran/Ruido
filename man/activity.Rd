@@ -14,6 +14,7 @@ activity(
   window = signal::hamming(wl),
   overlap = ceiling(length(window)/2),
   histbreaks = "FD",
+  DCfix = TRUE,
   powthr = 10,
   bgnthr = 0.8,
   beta = TRUE
@@ -26,7 +27,7 @@ activity(
 
 \item{timeBin}{size (in seconds) of the time bin. Set to \code{NULL} to use the entire audio as a single bin. Defaults to \code{60}}
 
-\item{dbThreshold}{minimum allowed value of dB for the spectrograms. Defaults to \code{-90}, as set by Towsey 2017}
+\item{dbThreshold}{minimum allowed value of dB for the spectrograms. Set to \code{NULL} to leave db values unrestricted Defaults to \code{-90}, as set by Towsey 2017}
 
 \item{targetSampRate}{desired sample rate of the audios.  This argument is only used to down sample the audio. If \code{NULL}, then audio's sample rate remains the same. Defaults to \code{NULL}}
 
@@ -36,16 +37,19 @@ activity(
 
 \item{overlap}{overlap between the spectrogram windows. Defaults to \code{wl/2} (half the window length)}
 
-\item{histbreaks}{breaks used to calculate Background Noise. Available breaks are: \code{"FD"}, \code{"Sturges"}, \code{"scott"} or any numeric value (foe example = \code{100}). Defaults to \code{"FD"}}
+\item{histbreaks}{breaks used to calculate Background Noise. Available breaks are: \code{"FD"}, \verb{"Sturges}", \code{"scott"} and \code{100}. Defaults to \code{"FD"}.
+\if{html}{\out{<br>}}Can also be set to any numerical value to limit or increase the amount of breaks.}
 
-\item{powthr}{single numeric value to calculate the activity matrix for soundscape power (in dB). Detauls to \code{10}}
+\item{DCfix}{if the DC offset should be removed before the metrics are calculated. Defaults to \code{TRUE}}
 
-\item{bgnthr}{single numeric value to calculate the activity matrix for background noise (in \%). Detauls to \code{0.8}}
+\item{powthr}{single numeric value to calculate the activity matrix for soundscape power (in dB). Defaults to \code{10}}
+
+\item{bgnthr}{single numeric value to calculate the activity matrix for background noise (in \%). Defaults to \code{0.8}}
 
 \item{beta}{how BGN thresholds are calculated. If \code{TRUE}, BGN thresholds are calculated using all recordings combined. If FALSE, BGN thresholds are calculated separately for each recording. Defaults to \code{TRUE}}
 }
 \value{
-This function returns a 0 and 1 matrix containing the activity for all time bins of the inputted file. The matrix's number of rows will equal to half the set window lenght (\code{wl}) and number of columns will equal the number of bins. Cells with the value of 1 represent the acoustically active frequency of a bin.
+This function returns a 0 and 1 matrix containing the activity for all time bins of the inputted file. The matrix's number of rows will equal to half the set window length (\code{wl}) and number of columns will equal the number of bins. Cells with the value of 1 represent the acoustically active frequency of a bin.
 }
 \description{
 Calculate the Acoustic Activity Matrix using the methodology proposed in Burivalova 2018
@@ -59,40 +63,21 @@ Where \eqn{\theta_{1}} equals the threshold of BGN values and \eqn{\theta_{2}} e
 }
 \examples{
 if (require("ggplot2")) {
-### Generating an artificial audio for the example
-## For this example we'll generate a sweep in a noisy soundscape
-library(tuneR)
 library(ggplot2)
+# We are going to load a sample noise.matrix object to demonstrate the basic usage of singleSat()
+# To understand about the origin of this noise.matrix, check: ?sampleBGN
+data("sampleBGN")
 
-# Define parameters for the artificial audio
-samprate <- 12050
-dur <- 60
-n <- samprate * dur
+# View the sample noise.matrix object
+sampleBGN
 
-# White noise
-set.seed(413)
-noise <- rnorm(n)
+# Run the function
+sat <- activity(sampleBGN)
 
-# Linear fade-out envelope
-fade <- seq(1, 0, length.out = n)
-
-# Apply fade
-signal <- noise * fade
-
-# Create Wave object
-wave <- Wave(
-  left = signal,
-  samp.rate = samprate,
-  bit = 16
-)
-
-# Running singleSat() on the artificial audio
-time <- 10
-sat <- activity(wave, timeBin = time)
-
-# Now we can plot the results
-satDim <- dim(sat)
-numericTime <- seq(0, dur, by = time)
+# Now we can plot the results for the left channel
+satLeft <- sat[,1:3]
+satDim <- dim(satLeft)
+numericTime <- seq(0, sum(sampleBGN@timeBins), by = sampleBGN@timeBins[1])
 labels <- paste0(numericTime[-length(numericTime)], "-", numericTime[-1], "s")
 
 satDF <- data.frame(BIN = rep(paste0("BIN", seq(satDim[2])), each = satDim[1]),

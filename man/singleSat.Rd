@@ -14,19 +14,20 @@ singleSat(
   window = signal::hamming(wl),
   overlap = ceiling(length(window)/2),
   histbreaks = "FD",
+  DCfix = TRUE,
   powthr = 10,
   bgnthr = 0.8,
   beta = TRUE
 )
 }
 \arguments{
-\item{soundfile}{tuneR Wave object or path to a valid audio}
+\item{soundfile}{tuneR Wave object, Ruido noise.matrix object or path to a valid audio}
 
 \item{channel}{channel where the background noise values will be extract from. Available channels are: \code{"stereo"}, \code{"mono"}, \code{"left"} or \code{"right"}. Defaults to \code{"stereo"}.}
 
 \item{timeBin}{size (in seconds) of the time bin. Set to \code{NULL} to use the entire audio as a single bin. Defaults to \code{60}}
 
-\item{dbThreshold}{minimum allowed value of dB for the spectrograms. Defaults to \code{-90}, as set by Towsey 2017.}
+\item{dbThreshold}{minimum allowed value of dB for the spectrograms. Set to \code{NULL} to leave db values unrestricted Defaults to \code{-90}, as set by Towsey 2017}
 
 \item{targetSampRate}{sample rate of the audios. Defaults to \code{NULL} to not change the sample rate. This argument is only used to down sample the audio.}
 
@@ -37,7 +38,9 @@ singleSat(
 \item{overlap}{overlap between the spectrogram windows. Defaults to \code{wl/2} (half the window length)}
 
 \item{histbreaks}{breaks used to calculate Background Noise. Available breaks are: \code{"FD"}, \verb{"Sturges}", \code{"scott"} and \code{100}. Defaults to \code{"FD"}.
-\if{html}{\out{<br>}}Can also be set to any number to limit or increase the amount of breaks.}
+\if{html}{\out{<br>}}Can also be set to any numerical value to limit or increase the amount of breaks.}
+
+\item{DCfix}{if the DC offset should be removed before the metrics are calculated. Defaults to \code{TRUE}}
 
 \item{powthr}{a single value to evaluate the activity matrix for Soundscape Power (in \%dB). Defaults to \code{10}.}
 
@@ -46,7 +49,7 @@ singleSat(
 \item{beta}{how BGN thresholds are calculated. If TRUE, BGN thresholds are computed using all recordings combined.}
 }
 \value{
-A vector containing the saturation values for all time bins of the inputted file
+A list containing the saturation values for all time bins of the inputted file
 }
 \description{
 Single Soundscape Saturation Index
@@ -62,16 +65,41 @@ Since we define a single threshold for both in this function, we don't have to w
 For the selected threshold a soundscape saturation measure will be taken with the following formula:
 
 \deqn{S_{m} = \frac{\sum_{f = 1}^N a_{mf}}{N}}
-
-Since this is analyzing the soundscape saturaion of a single file, no normality tests will be done.
 }
 \examples{
+# First example: Using a Ruido noise.matrix object
+# We are going to load a sample noise.matrix object to demonstrate the basic usage of singleSat()
+# To understand about the origin of this noise.matrix, check: ?sampleBGN
+data("sampleBGN")
+
+# View the sample noise.matrix object
+sampleBGN
+
+# Run the function
+SAT <- singleSat(sampleBGN)
+
+# View the results
+SAT
+
+# Now lets plot our results to see the dynamics of soundscape saturation by minute
+maxV <- max(unlist(SAT))
+minV <- min(unlist(SAT))
+
+plot(x = c(1, 3), y = c(minV, maxV), type = "n",
+     xlab = "Minute", ylab = "Soundscape Saturation (\%)", xaxt = "n")
+lines(x = 1:3, SAT$left, col = "#1ECBE1", type = "b", pch = 16)
+axis(1, at = 1:3)
+lines(x = 1:3, SAT$right, col = "#E1341E", type = "b", pch = 16)
+legend("topright", legend = c("Left", "Right"), col = c("#1ECBE1", "#E1341E"), lty = 1, pch = 16)
+
+# Second example: Using a tuneR Wave-class object
+# Lets produce an artificial audio with the tuneR package to demonstrate that
+# the function can also read Wave-class objects (This is the same object used in
+# the example of bgNoise!)
+
+library(tuneR)
 
 oldpar <- par(no.readonly = TRUE)
-
-### Generating an artificial audio for the example
-## For this example we'll generate a sweep in a noisy soundscape
-library(tuneR)
 
 # Define parameters for the artificial audio
 samprate <- 12050
@@ -106,7 +134,7 @@ image(periodogram(wave, width = 8192, normalize = FALSE), xlab = "Time (s)",
 ylab = "Frequency (hz)", axes = FALSE)
 axis(1, labels = seq(0,60, 10), at = seq(0,7e5,length.out = 7))
 axis(2)
-plot(sat, xlab = "Time (s)", ylab = "Soundscape Saturation (\%)",
+plot(sat$mono, xlab = "Time (s)", ylab = "Soundscape Saturation (\%)",
 type = "b", pch = 16, axes = FALSE)
 axis(1, labels = paste0(c("0-10","10-20","20-30","30-40","40-50","50-59"),
 "s"), at = 1:6)
@@ -115,6 +143,9 @@ axis(2)
 par(oldpar)
 
 \donttest{
+# Third example: Reading a file directly
+# Lets begin by loading an audio from the online Zenodo library and
+# read it directly with the function
 # Getting audiofile from the online Zenodo library
 dir <- paste(tempdir(), "forExample", sep = "/")
 dir.create(dir)
@@ -131,7 +162,7 @@ sat <- singleSat(recDir)
 # Printing the results
 print(sat)
 
-barplot(sat, col = c("darkgreen", "red"),
+barplot(unlist(sat), col = c("darkgreen", "red"),
        names.arg = c("Left", "Right"), ylab = "Soundscape Saturation (\%)")
 
 unlink(dir, recursive = TRUE)
@@ -139,4 +170,7 @@ unlink(dir, recursive = TRUE)
 }
 \references{
 Burivalova, Z., Towsey, M., Boucher, T., Truskinger, A., Apelis, C., Roe, P., & Game, E. T. (2018). Using soundscapes to detect variable degrees of human influence on tropical forests in Papua New Guinea. Conservation Biology, 32(1), 205-215. https://doi.org/10.1111/cobi.12968
+}
+\seealso{
+\code{\link[=soundSat]{soundSat()}} and \code{\link[=soundMat]{soundMat()}} to work with multiple audio files and \code{\link[=activity]{activity()}} to get only the activity matrix
 }
