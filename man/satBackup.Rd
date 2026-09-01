@@ -23,28 +23,28 @@ Arguments can't be inputted nor changed since the function will automatically lo
 ## This example will load an entire day of audios to your computer, so beware.
 
 ### Downloading audiofiles from public Zenodo library
-dir <- paste(tempdir(), "forExample", sep = "/")
+dir = paste(tempdir(), "forExample", sep = "/")
 dir.create(dir)
-recName <- paste0("GAL24576_20250401_", sprintf("\%06d", seq(0, 230000, by = 10000)),".wav")
-recDir <- paste(dir, recName, sep = "/")
+recName = paste0("GAL24576_20250401_", sprintf("\%06d", seq(0, 230000, by = 10000)),".wav")
+recDir = paste(dir, recName, sep = "/")
 
 for(rec in recName) {
   print(rec)
-  url <- paste0("https://zenodo.org/records/17575795/files/", rec, "?download=1")
+  url = paste0("https://zenodo.org/records/17575795/files/", rec, "?download=1")
   download.file(url, destfile = paste(dir, rec, sep = "/"), mode = "wb")
 }
 
-sat <- soundSat(dir, backup = dir)
+sat = soundSat(dir, backup = dir)
 
 # Now pretend the process was interrupted (manually/your R crashed/your computer turned off)
 # We get the backup file
 
 list.files(dir)
-backupDir <- paste(dir, "SATBACKUP.RData", sep = "/")
+backupDir = paste(dir, "SATBACKUP.rds", sep = "/")
 
 # To recall the backup you simply:
 
-satB <- satBackup(backupDir)
+satB = satBackup(backupDir)
 
 head(satB$values)
 

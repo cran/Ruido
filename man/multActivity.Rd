@@ -22,9 +22,9 @@ multActivity(
 )
 }
 \arguments{
-\item{soundpath}{single or multiple directories to your audio files}
+\item{soundpath}{single or multiple directories to your \code{.wav} audio files}
 
-\item{channel}{channel where the saturation values will be extract from. Available channels are: \code{"stereo"}, \code{"mono"}, \code{"left"} or \code{"right"}. Defaults to \code{"stereo"}.}
+\item{channel}{channel where the saturation values will be extracted from. Available channels are: \code{"stereo"}, \code{"mono"}, \code{"left"} or \code{"right"}. Defaults to \code{"stereo"}.}
 
 \item{timeBin}{size (in seconds) of the time bin. Set to \code{NULL} to use the entire audio as a single bin. Defaults to \code{60}}
 
@@ -34,7 +34,7 @@ multActivity(
 
 \item{wl}{window length of the spectrogram. Defaults to \code{512}}
 
-\item{window}{window used to smooth the spectrogram. Switch to \code{signal::hanning(wl)} to use hanning instead. Defaults to \code{signal::hammning(wl)}}
+\item{window}{window used to smooth the spectrogram. Switch to \code{signal::hanning(wl)} to use hanning instead. Defaults to \code{signal::hamming(wl)}}
 
 \item{overlap}{overlap between the spectrogram windows. Defaults to \code{wl/2} (half the window length)}
 
@@ -60,11 +60,13 @@ Calculate the Acoustic Activity Matrix used in the the calculation of Soundscape
 \details{
 In this function, we only generate activity matrices for an directory using Burivalova 2018 methodology. For each time bin of the recording we apply the following formula:
 
-\deqn{a_{mf} = 1\  if (BGN_{mf} > \theta_{1})\  or\  (POW_{mf} > \theta_{2});\  otherwise,\  a_{mf} = 0,}
+\deqn{a_{m,f} = \begin{cases} 1, & \text{if } BGN_{m,f} > \theta_1 \ \text{ or } POW_{m,f} > \theta_2 \\ 0, & \text{otherwise} \end{cases}}
 
-Where \eqn{\theta_{1}} is the threshold of BGN values and \eqn{\theta_{2}} is a threshold of dB values. 1 = active and 0 = inactive.
+where \eqn{\theta} is a user-defined threshold applied uniformly to both \code{BGN} and \code{POW}. We set 1 to active and 0 to inactive frequency windows.
 
-If \code{backup} is set to a valid directory, a file named \code{"SATBACKUP.RData"} is saved after every batch of five processed files. If the function execution is interrupted (e.g., manual termination, an R session crash, or a system shutdown), this backup file can be passed to \code{satBackup()} (e.g., as \code{~path/SATBACKUP.RData}) to resume the original process. Once a backup is created, all arguments and file paths must remain unchanged, unless they are manually modified within the \code{.RData} object.
+If \code{backup} is set to a valid directory, a file named \code{"SATBACKUP.rds"} is automatically saved after every batch of five processed files. This file stores the current processing state and allows interrupted runs (e.g., due to manual termination, session crashes, or system shutdowns) to be resumed using \code{\link[=satBackup]{satBackup()}}.
+
+To resume processing, pass the saved file (e.g., \code{"path/SATBACKUP.rds"}) to \code{\link[=satBackup]{satBackup()}}. Once a backup has been created, all original arguments and file paths must remain unchanged, unless they are explicitly modified within the saved \code{.RData} object.
 }
 \examples{
 \donttest{
@@ -75,14 +77,14 @@ if (require("ggplot2") & require("patchwork")) {
   library(patchwork)
 
   ### Downloading audiofiles from public Zenodo library
-  dir <- paste0(tempdir(), "/forExamples")
+  dir = paste0(tempdir(), "/forExamples")
   dir.create(dir)
-  recName <- paste0("GAL24576_20250401_", sprintf("\%06d", seq(0, 200000, by = 50000)), ".wav")
-  recDir <- paste(dir, recName, sep = "/")
+  recName = paste0("GAL24576_20250401_", sprintf("\%06d", seq(0, 200000, by = 50000)), ".wav")
+  recDir = paste(dir, recName, sep = "/")
 
   for (rec in recName) {
     print(rec)
-    url <- paste0("https://zenodo.org/records/17575795/files/",
+    url = paste0("https://zenodo.org/records/17575795/files/",
                   rec,
                   "?download=1")
     download.file(url,
@@ -90,39 +92,39 @@ if (require("ggplot2") & require("patchwork")) {
                   mode = "wb")
   }
 
-  time <- sapply(strsplit(recName, "_"), function(x)
+  time = sapply(strsplit(recName, "_"), function(x)
     paste(substr(x[3], 1, 2), substr(x[3], 3, 4), substr(x[3], 5, 6), sep = ":"))
-  date <- sapply(strsplit(recName, "_"), function(x)
+  date = sapply(strsplit(recName, "_"), function(x)
     paste(substr(x[2], 1, 4), substr(x[2], 5, 6), substr(x[2], 7, 8), sep = "-"))
 
-  dateTime <- as.POSIXct(paste(date, time))
+  dateTime = as.POSIXct(paste(date, time))
 
-  timeLabels <- time[c(1, 7, 13, 19, 24)]
-  timeBreaks <- as.character(dateTime[c(1, 7, 13, 19, 24)])
+  timeLabels = time[c(1, 7, 13, 19, 24)]
+  timeBreaks = as.character(dateTime[c(1, 7, 13, 19, 24)])
 
-  breaks <- round(c(1, cumsum(rep(256 / 6, 6))))
+  breaks = round(c(1, cumsum(rep(256 / 6, 6))))
 
   ### Running the function
-  act <- multActivity(dir)
+  act = multActivity(dir)
 
-  plotN <- 1
+  plotN = 1
 
-  sDim <- dim(act$values)
+  sDim = dim(act$values)
 
-  sampRate <- act$info$SAMPRATE[1]
-  kHz <- cumsum(c(0, rep(sampRate / 6, 6))) / 1000
+  sampRate = act$info$SAMPRATE[1]
+  kHz = cumsum(c(0, rep(sampRate / 6, 6))) / 1000
 
-  plotList <- list()
+  plotList = list()
 
   for (cha in c("left", "right")) {
-    actCurrent <- act$values[, act$info$CHANNEL == cha]
-    actCurrentDF <- data.frame(
+    actCurrent = act$values[, act$info$CHANNEL == cha]
+    actCurrentDF = data.frame(
       TIME = as.character(rep(dateTime, each = sDim[1])),
       SPEC = rep(seq(sDim[1]), sDim[2]),
       VAL = factor(c(unlist(actCurrent)), levels = c(0, 1))
     )
 
-    plotList[[plotN]] <- ggplot(actCurrentDF, aes(x = TIME, y = SPEC, fill = VAL)) +
+    plotList[[plotN]] = ggplot(actCurrentDF, aes(x = TIME, y = SPEC, fill = VAL)) +
       geom_tile() +
       theme_classic() +
       scale_y_continuous(expand = c(NA, NA),
@@ -139,7 +141,7 @@ if (require("ggplot2") & require("patchwork")) {
         title = paste("Acoustic Activity in the", cha, "channel")
       )
 
-    plotN <- plotN + 1
+    plotN = plotN + 1
 
   }
 
@@ -155,5 +157,5 @@ if (require("ggplot2") & require("patchwork")) {
 Burivalova, Z., Towsey, M., Boucher, T., Truskinger, A., Apelis, C., Roe, P., & Game, E. T. (2018). Using soundscapes to detect variable degrees of human influence on tropical forests in Papua New Guinea. Conservation Biology, 32(1), 205-215. https://doi.org/10.1111/cobi.12968
 }
 \seealso{
-\code{\link[=soundSat]{soundSat()}} and \code{\link[=soundMat]{soundMat()}} to get saturation values. Also, check \code{\link[=satBackup]{satBackup()}} if you are working with larger datasets and want some safety.
+\code{\link[=activity]{activity()}} to run this on a single audio file, \code{\link[=soundSat]{soundSat()}} and \code{\link[=soundMat]{soundMat()}} to get saturation values instead. Also, check \code{\link[=satBackup]{satBackup()}} if you are working with larger datasets and want some safety.
 }

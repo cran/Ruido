@@ -3,6 +3,7 @@
 setClass(
   "noise.matrix.generic",
   slots = representation(
+    index = "character",
     values = "list",
     timeBins = "numeric",
     sampRate = "numeric",
@@ -28,137 +29,103 @@ setClass(
 #' @export
 #'
 #' @seealso [bgNoise()]
-setClass(
-  "noise.matrix",
-  contains = "noise.matrix.generic",
-  slots = representation(wl = "numeric")
-)
+setClass("noise.matrix",
+         contains = "noise.matrix.generic",
+         slots = representation(wl = "numeric"))
 
-setClass(
-  "noise.matrix.internal",
-  contains = "noise.matrix.generic",
-  slots = representation(path = "character")
-)
+setClass("noise.matrix.internal",
+         contains = "noise.matrix.generic",
+         slots = representation(path = "character"))
 
 # show --------------------------------------------------------------------
 
 setMethod("show", signature(object = "noise.matrix"), function(object) {
-  nBins <- length(object@timeBins)
+  nBins = length(object@timeBins)
+  titleMap = list("BGN+POW" = "Background Noise and Soundscape Power",
+                  "ACI" = "Spectral Acoustic Complexity Index",
+                  "ENT" = "Spectral Acoustic Entrophy Index")
 
-  cat("Background Noise and Soundscape Power")
+  cat(titleMap[[paste(object@index, collapse = "+")]])
+  cat("\nIndex:                 ", object@index)
   cat("\nChannel:               ", object@channel)
   cat("\nSampling Rate (Hz):    ", object@sampRate)
   cat("\nWindow Length:         ", object@wl)
   cat("\nTemporal Bins:         ", nBins, "\n")
 
   if (object@channel == "stereo") {
-    if (nBins == 1) {
+    if (nBins <= 5) {
+      powDist = nBins * 10 + 2
+
       cat("\n@values$left\n")
 
-      cat(
-        paste("$BGN", "$POW", sep = strrep(" ", 13)),
-        paste(
-          capture.output(rbind(setNames(
-            head(format(object@values$left$BGN), 5), "$BGN1"
-          ), "...")),
-          capture.output(rbind(setNames(
-            head(format(object@values$left$POW), 5), "$POW1"
-          ), "...")),
-          sep = strrep(" ", 5)
-        ),
-        sep = "\n"
-      )
+      out = lapply(object@index, function(ind) {
+        capture.output(rbind(head(
+          as.data.frame(
+            lapply(object@values$left[[ind]], function(col)
+              sprintf("%9.5f", col)),
+            col.names = paste0("$", ind, 1:nBins),
+            check.names = FALSE
+          ),
+          5
+        ), "..."))
+      })
+
+      cat(paste0("$", object@index, collapse = strrep(" ", powDist)),
+          do.call(paste, c(out, sep = strrep(" ", 5))),
+          sep = "\n")
 
       cat("\n@values$right\n")
 
-      cat(
-        paste("$BGN", "$POW", sep = strrep(" ", 13)),
-        paste(
-          capture.output(rbind(setNames(
-            head(format(object@values$right$BGN), 5), "$BGN1"
-          ), "...")),
-          capture.output(rbind(setNames(
-            head(format(object@values$right$POW), 5), "$POW1"
-          ), "...")),
-          sep = strrep(" ", 5)
-        ),
-        sep = "\n"
-      )
-    } else if (nBins > 1 && nBins <= 5) {
-      cat("\n@values$left\n")
+      out = lapply(object@index, function(ind) {
+        capture.output(rbind(head(
+          as.data.frame(
+            lapply(object@values$right[[ind]], function(col)
+              sprintf("%9.5f", col)),
+            col.names = paste0("$", ind, 1:nBins),
+            check.names = FALSE
+          ),
+          5
+        ), "..."))
+      })
 
-      powDist <- nBins * 10 + 3
-
-      cat(
-        paste("$BGN", "$POW", sep = strrep(" ", powDist)),
-        paste(
-          capture.output(rbind(setNames(
-            head(format(object@values$left$BGN), 5), paste0("$BGN", 1:nBins)
-          ), "...")),
-          capture.output(rbind(setNames(
-            head(format(object@values$left$POW), 5), paste0("$POW", 1:nBins)
-          ), "...")),
-          sep = strrep(" ", 5)
-        ),
-        sep = "\n"
-      )
-
-      cat("\n@values$right\n")
-
-      cat(
-        paste("$BGN", "$POW", sep = strrep(" ", powDist)),
-        paste(
-          capture.output(rbind(setNames(
-            head(format(object@values$right$BGN), 5), paste0("$BGN", 1:nBins)
-          ), "...")),
-          capture.output(rbind(setNames(
-            head(format(object@values$right$POW), 5), paste0("$POW", 1:nBins)
-          ), "...")),
-          sep = strrep(" ", 5)
-        ),
-        sep = "\n"
-      )
+      cat(paste0("$", object@index, collapse = strrep(" ", powDist)),
+          do.call(paste, c(out, sep = strrep(" ", 5))),
+          sep = "\n")
 
     } else {
+      powDist = 38
+
       cat("\n@values$left\n")
 
-      cat(
-        paste("$BGN", "$POW", sep = strrep(" ", 38)),
-        paste(
-          capture.output(setNames(
-            cbind(rbind(head(
-              format(object@values$left$BGN[1:5, 1:3]), 5
-            ), "..."), "..."), c(paste0("$BGN", 1:3), "$BGN.")
-          )),
-          capture.output(setNames(
-            cbind(rbind(head(
-              format(object@values$left$POW[1:5, 1:3]), 5
-            ), "..."), "..."), c(paste0("$POW", 1:3), "$POW.")
-          )),
-          sep = strrep(" ", 5)
-        ),
-        sep = "\n"
-      )
+      out = lapply(object@index, function(ind) {
+        capture.output(setNames(cbind(rbind(
+          head(as.data.frame(
+            lapply(object@values$left[[ind]][, 1:3], function(col)
+              sprintf("%9.5f", col)),
+            check.names = FALSE
+          ), 5), "..."
+        ), "..."), paste0("$", ind, c(1:3, "."))))
+      })
+
+      cat(paste0("$", object@index, collapse = strrep(" ", powDist)),
+          do.call(paste, c(out, sep = strrep(" ", 5))),
+          sep = "\n")
 
       cat("\n@values$right\n")
 
-      cat(
-        paste("$BGN", "$POW", sep = strrep(" ", 38)),
-        paste(
-          capture.output(setNames(
-            cbind(rbind(head(
-              format(object@values$right$BGN[1:5, 1:3]), 5
-            ), "..."), "..."), c(paste0("$BGN", 1:3), "$BGN.")
-          )),
-          capture.output(setNames(
-            cbind(rbind(head(
-              format(object@values$right$POW[1:5, 1:3]), 5
-            ), "..."), "..."), c(paste0("$POW", 1:3), "$POW")
-          )),
-          sep = strrep(" ", 5)
-        ),
-        sep = "\n"
-      )
+      out = lapply(object@index, function(ind) {
+        capture.output(setNames(cbind(rbind(
+          head(as.data.frame(
+            lapply(object@values$right[[ind]][, 1:3], function(col)
+              sprintf("%9.5f", col)),
+            check.names = FALSE
+          ), 5), "..."
+        ), "..."), paste0("$", ind, c(1:3, "."))))
+      })
+
+      cat(paste0("$", object@index, collapse = strrep(" ", powDist)),
+          do.call(paste, c(out, sep = strrep(" ", 5))),
+          sep = "\n")
 
     }
   } else {
@@ -166,57 +133,41 @@ setMethod("show", signature(object = "noise.matrix"), function(object) {
 
     cat("\n@values$", rChannel, "\n", sep = "")
 
-    if (nBins == 1) {
-      cat(
-        paste("$BGN", "$POW", sep = strrep(" ", 13)),
-        paste(
-          capture.output(rbind(setNames(
-            head(format(object@values[[rChannel]]$BGN), 5), "$BGN1"
-          ), "...")),
-          capture.output(rbind(setNames(
-            head(format(object@values[[rChannel]]$POW), 5), "$POW1"
-          ), "...")),
-          sep = strrep(" ", 5)
-        ),
-        sep = "\n"
-      )
+    if (nBins <= 5) {
+      powDist = nBins * 10 + 2
 
-    } else if (nBins > 1 && nBins <= 5) {
-      powDist <- nBins * 10 + 3
+      out = lapply(object@index, function(ind) {
+        capture.output(rbind(head(
+          as.data.frame(
+            lapply(object@values[[rChannel]][[ind]], function(col)
+              sprintf("%9.5f", col)),
+            col.names = paste0("$", ind, 1:nBins),
+            check.names = FALSE
+          ),
+          5
+        ), "..."))
+      })
 
-      cat(
-        paste("$BGN", "$POW", sep = strrep(" ", powDist)),
-        paste(
-          capture.output(rbind(setNames(
-            head(format(object@values[[rChannel]]$BGN), 5), paste0("$BGN", 1:nBins)
-          ), "...")),
-          capture.output(rbind(setNames(
-            head(format(object@values[[rChannel]]$POW), 5), paste0("$POW", 1:nBins)
-          ), "...")),
-          sep = strrep(" ", 5)
-        ),
-        sep = "\n"
-      )
+      cat(paste0("$", object@index, collapse = strrep(" ", powDist)),
+          do.call(paste, c(out, sep = strrep(" ", 5))),
+          sep = "\n")
 
     } else {
-      cat(
-        paste("$BGN", "$POW", sep = strrep(" ", 38)),
-        paste(
-          capture.output(setNames(
-            cbind(rbind(head(
-              format(object@values[[rChannel]]$BGN[1:5, 1:3]), 5
-            ), "..."), "..."), c(paste0("$BGN", 1:3), "$BGN.")
-          )),
-          capture.output(setNames(
-            cbind(rbind(head(
-              format(object@values[[rChannel]]$POW[1:5, 1:3]), 5
-            ), "..."), "..."), c(paste0("$POW", 1:3), "$POW.")
-          )),
-          sep = strrep(" ", 5)
-        ),
-        sep = "\n"
-      )
+      powDist = 38
 
+      out = lapply(object@index, function(ind) {
+        capture.output(setNames(cbind(rbind(
+          head(as.data.frame(
+            lapply(object@values[[rChannel]][[ind]][, 1:3], function(col)
+              sprintf("%9.5f", col)),
+            check.names = FALSE
+          ), 5), "..."
+        ), "..."), paste0("$", ind, c(1:3, "."))))
+      })
+
+      cat(paste0("$", object@index, collapse = strrep(" ", powDist)),
+          do.call(paste, c(out, sep = strrep(" ", 5))),
+          sep = "\n")
     }
   }
 })
@@ -225,14 +176,14 @@ setMethod("show", signature(object = "noise.matrix"), function(object) {
 
 #' Plot noise.matrix objects
 #'
-#' @param x an `noise.matrix` object generated by [bgNoise]
+#' @param x an `noise.matrix` object
 #' @param channel channel or channels to be ploted. By default, this set to `x@channel`, but can be changed to `left` or `right` if `x@channel` = `stereo`
 #' @param bin temporal bin to be plotted. Defaults to `1`
-#' @param index a character vector of length 1 or 2 with indeces to be plotted. Available indices are: BGN and POW. Defaults to `c("BGN", "POW)`
+#' @param index a character vector of length 1 or 2 with indexes to be plotted. Available indices are: `c("BGN", "POW")`, `"BGN"`, `"POW"` and `"ACI"`. Defaults to the indexes listed in `x@index`
 #' @param nbreaks amount of breaks of the y axis. Defaults to `5`
 #' @param yunit frequency unit to be used in plot. Available units are: `"hz"` and `"khz"`. Defaults to `"hz"`
 #' @param main title for the plot. Set two strings if you are plotting and stereo noise.matrix. If set to `NULL`, default title will be `left/right/mono channel`
-#' @param xlab label for the x-axis. Defaults to `"dB"`
+#' @param xlab label for the x-axis. Changes depending on `x@index`
 #' @param ylab label for the y-axis. Defaults to `"Frequency"`
 #' @param col plotting color for de indices. Defaults to `c("blue","red")`
 #' @param type desired plot type. For details see [base::plot]
@@ -255,28 +206,52 @@ setMethod("show", signature(object = "noise.matrix"), function(object) {
 #' @importFrom methods new
 #' @importFrom utils head
 #'
-setMethod("plot", signature(x = "noise.matrix"), function(x, channel = NULL, bin = 1, index = c("BGN", "POW"), nbreaks = 5,
-                                                          yunit = c("hz", "khz"), main = NULL, xlab = "dB", ylab = "Frequency", col = c("blue", "red"),
-                                                          type = "p", draw0 = TRUE, box = TRUE, axes = TRUE, annotate = TRUE,
+#' @export
+#'
+setMethod("plot", signature(x = "noise.matrix"), function(x,
+                                                          channel = NULL,
+                                                          bin = 1,
+                                                          index = NULL,
+                                                          nbreaks = 5,
+                                                          yunit = c("hz", "khz"),
+                                                          main = NULL,
+                                                          xlab = NULL,
+                                                          ylab = "Frequency",
+                                                          col = c("blue", "red"),
+                                                          type = "p",
+                                                          draw0 = TRUE,
+                                                          box = TRUE,
+                                                          axes = TRUE,
+                                                          annotate = TRUE,
                                                           ...) {
-
   if (!is.null(channel)) {
-    channel <- match.arg(channel, c("stereo", "mono", "left", "right"))
+    channel = match.arg(channel, c("stereo", "mono", "left", "right"))
   } else {
-    channel <- x@channel
+    channel = x@channel
   }
 
   if (is.null(main)) {
-    main <- "channel"
+    main = "channel"
   }
 
-  yunit <- match.arg(yunit)
+  if (is.null(xlab)) {
+    xlab = switch(paste(sort(x@index), collapse = "+"),
+                  "BGN+POW" = "dB",
+                  "ACI" = "Amplitude",
+                  "ENT" = "Entropy")
+  }
+
+  yunit = match.arg(yunit)
 
   if (length(x@timeBins) < bin) {
-    bin <- length(x@timeBins)
+    bin = length(x@timeBins)
   }
 
-  plotBGN(
+  if (is.null(index)) {
+    index = x@index
+  }
+
+  plotNOISE(
     x = x,
     channel = channel,
     bin = bin,

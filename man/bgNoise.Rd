@@ -18,9 +18,9 @@ bgNoise(
 )
 }
 \arguments{
-\item{soundfile}{tuneR Wave object or path to a valid audio file}
+\item{soundfile}{wav package numeric matrix, tuneR package Wave object or path to a \code{.wav} file}
 
-\item{channel}{channel where the metric values will be extract from. Available channels are: \code{"stereo"}, \code{"mono"}, \code{"left"} or \code{"right"}. Defaults to \code{"stereo"}}
+\item{channel}{channel where the metric values will be extracted from. Available channels are: \code{"stereo"}, \code{"mono"}, \code{"left"} or \code{"right"}. Defaults to \code{"stereo"}}
 
 \item{timeBin}{size (in seconds) of the time bin. Set to \code{NULL} to use the entire audio as a single bin. Defaults to \code{60}}
 
@@ -30,7 +30,7 @@ bgNoise(
 
 \item{wl}{window length of the spectrogram. Defaults to \code{512}}
 
-\item{window}{window used to smooth the spectrogram. Switch to \code{signal::hanning(wl)} to use hanning instead. Defaults to \code{signal::hammning(wl)}}
+\item{window}{window used to smooth the spectrogram. Switch to \code{signal::hanning(wl)} to use hanning instead. Defaults to \code{signal::hamming(wl)}}
 
 \item{overlap}{overlap between the spectrogram windows. Defaults to \code{wl/2} (half the window length)}
 
@@ -40,22 +40,25 @@ bgNoise(
 \item{DCfix}{if the DC offset should be removed before the metrics are calculated. Defaults to \code{TRUE}}
 }
 \value{
-This function returns a \linkS4class{noise.matrix} object
+This function returns a \link[=noise.matrix-class]{noise.matrix} object
 }
 \description{
 Calculate the Background Noise and Soundscape Power values of a single audio using the methodology proposed in Towsey 2017
 }
 \details{
-Background Noise (\code{BGN}) is an acoustic metric that measures the most common continuous baseline level of acoustic energy in a frequency window and in a time bin. It was developed by Towsey 2017 using the Lamel et al 1981 algorithm.
-The metric is calculated by taking the modal value of intensity values in temporal bin c in frequency window f of a recording:
+Background Noise (\code{BGN}) is an acoustic metric that estimates the dominant baseline level of acoustic energy within a frequency window and time bin. It was described by Towsey (2017) based on the approach of Lamel et al. (1981).
 
-\deqn{BGN_{f} = mode(dB_{cf})}
+For each frequency window \eqn{f} and time bin \eqn{c}, \code{BGN} is defined as the modal value of the intensity distribution (in dB), representing the most frequently occurring sound level:
 
-Soundscape Power represents a measure of signal-to-noise ratio. It measures the relation of BGN to the loudest intensities in temporal bin c in frequency window f:
+\deqn{BGN_f = \mathrm{mode}(dB_{c,f})}
 
-\deqn{POW_{f} = max(dB_{cf}) - BGN_{cf}}
+This value approximates the continuous background component of the soundscape, filtering out transient acoustic events such as bird calls or other short-duration signals.
 
-This mean we'll have a value of BGN and POW to each frequency window of a recording.
+Soundscape Power (\code{POW}) quantifies the contrast between this baseline level and the strongest acoustic events within the same frequency window and time bin. It is defined as:
+
+\deqn{POW_f = \max(dB_{c,f}) - BGN_f}
+
+where \eqn{\max(dB_{c,f})} is the maximum intensity observed. \code{POW} can be interpreted as a proxy for signal-to-noise ratio, with higher values indicating stronger or more prominent acoustic events relative to the background level.
 }
 \examples{
 ### For our main example we'll create an artificial audio with
@@ -64,21 +67,21 @@ This mean we'll have a value of BGN and POW to each frequency window of a record
 library(tuneR)
 
 # Define the audio sample rate, duration and number of samples
-samprate <- 12050
-dur <- 60
-n <- samprate * dur
+samprate = 12050
+dur = 60
+n = samprate * dur
 
 # Then we generate white noise
 set.seed(413)
-noise <- rnorm(n)
+noise = rnorm(n)
 
 # Linear fade-out envelope
-fade <- seq(1, 0, length.out = n)
+fade = seq(1, 0, length.out = n)
 
 # Apply fade
-signal <- noise * fade
+signal = noise * fade
 
-wave <- Wave(left = signal, right = signal,
+wave = Wave(left = signal, right = signal,
             samp.rate = samprate,
             bit = 16)
 
@@ -87,7 +90,7 @@ wave <- Wave(left = signal, right = signal,
 wave
 
 # Running the bgNoise function with all the default arguments
-bgn <- bgNoise(wave)
+bgn = bgNoise(wave)
 
 # See the results
 bgn
@@ -100,11 +103,11 @@ plot(bgn)
 ### These audios are originated from the Escutadô Project, a project
 ### that records the soundscapes of the brazilian semiarid
 # Getting audiofile from the online Zenodo library
-dir <- paste(tempdir(), "forExample", sep = "/")
+dir = paste(tempdir(), "forExample", sep = "/")
 dir.create(dir)
-rec <- paste0("GAL24576_20250401_", sprintf("\%06d", 0), ".wav")
-recDir <- paste(dir, rec , sep = "/")
-url <- paste0("https://zenodo.org/records/17575795/files/",
+rec = paste0("GAL24576_20250401_", sprintf("\%06d", 0), ".wav")
+recDir = paste(dir, rec , sep = "/")
+url = paste0("https://zenodo.org/records/17575795/files/",
               rec,
               "?download=1")
 
@@ -112,7 +115,7 @@ url <- paste0("https://zenodo.org/records/17575795/files/",
 download.file(url, destfile = recDir, mode = "wb")
 
 # Running the bgNoise function with all the default arguments
-bgn <- bgNoise(recDir)
+bgn = bgNoise(recDir)
 
 # Here's the result
 bgn
@@ -125,7 +128,7 @@ plot(bgn@values$left$BGN$BGN1, bgn@values$left$POW$POW1,
      xlab = "BGN (dB)", ylab = "POW (dB)", pch = 16)
 
 # Now lets test and plot their correlation
-BGNPOWlm <- lm(bgn@values$left$BGN$BGN1~bgn@values$left$POW$POW1)
+BGNPOWlm = lm(bgn@values$left$BGN$BGN1~bgn@values$left$POW$POW1)
 summary(BGNPOWlm)
 abline(lm(bgn@values$left$BGN$BGN1~bgn@values$left$POW$POW1), col = "red")
 }
@@ -133,4 +136,7 @@ abline(lm(bgn@values$left$BGN$BGN1~bgn@values$left$POW$POW1), col = "red")
 \references{
 Towsey, M. W. (2017). The calculation of acoustic indices derived from long-duration recordings of the natural environment. In eprints.qut.edu.au. https://eprints.qut.edu.au/110634/
 \if{html}{\out{<br>}}Lamel, L., Rabiner, L., Rosenberg, A., & Wilpon, J. (1981). An improved endpoint detector for isolated word recognition. IEEE Transactions on Acoustics, Speech, and Signal Processing, 29(4), 777-785 https://doi.org/10.1109/TASSP.1981.1163642
+}
+\seealso{
+\code{\link[=ACIspec]{ACIspec()}} to calculate the Acoustic Complexity Index and \code{\link[=ENTspec]{ENTspec()}} to calculate Spectral Entropy from a single audio file. Also, check \code{\link[=activity]{activity()}} and \code{\link[=singleSat]{singleSat()}}, which use this same Background Noise and Soundscape Power calculation to determine acoustic activity and saturation.
 }

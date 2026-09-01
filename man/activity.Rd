@@ -21,9 +21,9 @@ activity(
 )
 }
 \arguments{
-\item{soundfile}{tuneR Wave object or path to a valid audio}
+\item{soundfile}{wav package numeric matrix, tuneR package Wave object or path to a \code{.wav} file}
 
-\item{channel}{channel where the saturation values will be extract from. Available channels are: \code{"stereo"}, \code{"mono"}, \code{"left"} or \code{"right"}. Defaults to \code{"stereo"}.}
+\item{channel}{channel where the saturation values will be extracted from. Available channels are: \code{"stereo"}, \code{"mono"}, \code{"left"} or \code{"right"}. Defaults to \code{"stereo"}.}
 
 \item{timeBin}{size (in seconds) of the time bin. Set to \code{NULL} to use the entire audio as a single bin. Defaults to \code{60}}
 
@@ -33,7 +33,7 @@ activity(
 
 \item{wl}{window length of the spectrogram. Defaults to \code{512}}
 
-\item{window}{window used to smooth the spectrogram. Switch to \code{signal::hanning(wl)} to use hanning instead. Defaults to \code{signal::hammning(wl)}}
+\item{window}{window used to smooth the spectrogram. Switch to \code{signal::hanning(wl)} to use hanning instead. Defaults to \code{signal::hamming(wl)}}
 
 \item{overlap}{overlap between the spectrogram windows. Defaults to \code{wl/2} (half the window length)}
 
@@ -57,9 +57,9 @@ Calculate the Acoustic Activity Matrix using the methodology proposed in Burival
 \details{
 To calculate the activity matrix, we use the methodology proposed by Burivalova 2018. We begin by applying the following formula to each time bin of the recording:
 
-\deqn{a_{mf} = 1\  if (BGN_{mf} > \theta_{1})\  or\  (POW_{mf} > \theta_{2});\  otherwise,\  a_{mf} = 0,}
+\deqn{a_{m,f} = \begin{cases} 1, & \text{if } BGN_{m,f} > \theta_1 \ \text{ or } POW_{m,f} > \theta_2 \\ 0, & \text{otherwise} \end{cases}}
 
-Where \eqn{\theta_{1}} equals the threshold of BGN values and \eqn{\theta_{2}} equals the threshold of dB values. We set 1 to active and 0 to inactive frequency windows.
+where \eqn{\theta} is a user-defined threshold applied uniformly to both \code{BGN} and \code{POW}. We set 1 to active and 0 to inactive frequency windows.
 }
 \examples{
 if (require("ggplot2")) {
@@ -72,15 +72,15 @@ data("sampleBGN")
 sampleBGN
 
 # Run the function
-sat <- activity(sampleBGN)
+sat = activity(sampleBGN)
 
 # Now we can plot the results for the left channel
-satLeft <- sat[,1:3]
-satDim <- dim(satLeft)
-numericTime <- seq(0, sum(sampleBGN@timeBins), by = sampleBGN@timeBins[1])
-labels <- paste0(numericTime[-length(numericTime)], "-", numericTime[-1], "s")
+satLeft = sat[,1:3]
+satDim = dim(satLeft)
+numericTime = seq(0, sum(sampleBGN@timeBins), by = sampleBGN@timeBins[1])
+labels = paste0(numericTime[-length(numericTime)], "-", numericTime[-1], "s")
 
-satDF <- data.frame(BIN = rep(paste0("BIN", seq(satDim[2])), each = satDim[1]),
+satDF = data.frame(BIN = rep(paste0("BIN", seq(satDim[2])), each = satDim[1]),
                     WIN = rep(seq(satDim[1]), satDim[2]),
                     ACT = factor(c(sat), levels = c(0,1)))
 
@@ -97,4 +97,7 @@ ggplot(satDF, aes(x = BIN, y = WIN, fill = ACT)) +
 }
 \references{
 Burivalova, Z., Towsey, M., Boucher, T., Truskinger, A., Apelis, C., Roe, P., & Game, E. T. (2018). Using soundscapes to detect variable degrees of human influence on tropical forests in Papua New Guinea. Conservation Biology, 32(1), 205-215. https://doi.org/10.1111/cobi.12968
+}
+\seealso{
+\code{\link[=multActivity]{multActivity()}} to run this over multiple audio files and \code{\link[=singleSat]{singleSat()}} to get the full saturation values this activity matrix is derived from.
 }

@@ -19,65 +19,65 @@
 #' ## This example will load an entire day of audios to your computer, so beware.
 #'
 #' ### Downloading audiofiles from public Zenodo library
-#' dir <- paste(tempdir(), "forExample", sep = "/")
+#' dir = paste(tempdir(), "forExample", sep = "/")
 #' dir.create(dir)
-#' recName <- paste0("GAL24576_20250401_", sprintf("%06d", seq(0, 230000, by = 10000)),".wav")
-#' recDir <- paste(dir, recName, sep = "/")
+#' recName = paste0("GAL24576_20250401_", sprintf("%06d", seq(0, 230000, by = 10000)),".wav")
+#' recDir = paste(dir, recName, sep = "/")
 #'
 #' for(rec in recName) {
 #'   print(rec)
-#'   url <- paste0("https://zenodo.org/records/17575795/files/", rec, "?download=1")
+#'   url = paste0("https://zenodo.org/records/17575795/files/", rec, "?download=1")
 #'   download.file(url, destfile = paste(dir, rec, sep = "/"), mode = "wb")
 #' }
 #'
-#' sat <- soundSat(dir, backup = dir)
+#' sat = soundSat(dir, backup = dir)
 #'
 #' # Now pretend the process was interrupted (manually/your R crashed/your computer turned off)
 #' # We get the backup file
 #'
 #' list.files(dir)
-#' backupDir <- paste(dir, "SATBACKUP.RData", sep = "/")
+#' backupDir = paste(dir, "SATBACKUP.rds", sep = "/")
 #'
 #' # To recall the backup you simply:
 #'
-#' satB <- satBackup(backupDir)
+#' satB = satBackup(backupDir)
 #'
 #' head(satB$values)
 #'
 #' unlink(dir, recursive = TRUE)
 #' }
-satBackup <- function(backup) {
-  SATdf <- readRDS(backup)
+satBackup = function(backup) {
+  SATdf = readRDS(backup)
 
   list2env(SATdf$ogARGS, envir = environment())
 
-  soundfiles <- list.files(od, full.names = TRUE, recursive = TRUE)
-  soundfiles <- soundfiles[tolower(tools::file_ext(soundfiles)) %in% c("mp3", "wav")]
+  soundfiles = list.files(od, full.names = TRUE, recursive = TRUE)
+  soundfiles = soundfiles[tolower(tools::file_ext(soundfiles)) == "wav"]
 
   if (type != "multActivity") {
-    powthreshold <- seq(powthr[1], powthr[2], powthr[3])
-    names(powthreshold) <- powthreshold
-    bgnthreshold <- seq(bgnthr[1], bgnthr[2], bgnthr[3])
+    powthreshold = seq(powthr[1], powthr[2], powthr[3])
+    names(powthreshold) = powthreshold
+    bgnthreshold = seq(bgnthr[1], bgnthr[2], bgnthr[3])
 
-    thresholdCombinations <- setNames(expand.grid(powthreshold, bgnthreshold),
+    thresholdCombinations = setNames(expand.grid(powthreshold, bgnthreshold),
                                       c("powthreshold", "bgnthreshold"))
 
-    combinations <- paste(thresholdCombinations[, 1], thresholdCombinations[, 2], sep = "/")
+    combinations = paste(thresholdCombinations[, 1], thresholdCombinations[, 2], sep = "/")
   }
 
-  halfWl <- wl / 2
+  halfWl = wl / 2
 
   if (concluded == nFiles) {
     message("All files have already been processed!")
 
   } else {
     for (soundfile in concluded:nFiles) {
-      gc()
+      ## gc()
 
-      sPath <- soundfiles[[soundfile]]
+      sPath = soundfiles[[soundfile]]
 
-      SATdf[["indexes"]][[soundfile]] <- tryCatch(
-        bgNoise.(
+      result = tryCatch(
+        bgNoise..(
           sPath,
           timeBin = timeBin,
           targetSampRate = targetSampRate,
@@ -89,25 +89,28 @@ satBackup <- function(backup) {
           histbreaks = histbreaks,
           DCfix = DCfix
         ),
-        error = function(e)
+        error = function(e) {
+          e$message = paste0(e$message, " (file: ", sPath, ")")
           e
+        }
       )
 
-      SATdf[["indexes"]][[soundfile]]@path <- sPath
+      if (!is(result, "error")) result@path = sPath
+      SATdf[["indexes"]][[soundfile]] = result
 
       message(
         "\r(",
         basename(soundfiles[soundfile]),
         ") ",
-        match(soundfiles[soundfile], soundfiles),
+        soundfile,
         " out of ",
-        length(soundfiles),
-        " recordings concluded!",
+        nFiles,
+        " recordings concluded.",
         sep = ""
       )
 
       if (!is.null(backup) && soundfile %% 5 == 1) {
-        SATdf$ogARGS$concluded <- soundfile
+        SATdf$ogARGS$concluded = soundfile
 
         saveRDS(SATdf, file = backup)
       }
@@ -116,14 +119,14 @@ satBackup <- function(backup) {
 
   }
 
-  whichError <- sapply(SATdf[["indexes"]], function(x) {
+  whichError = sapply(SATdf[["indexes"]], function(x) {
     is(x, "error")
   })
 
-  ERRORS <- SATdf$indexes[whichError]
-  indexes <- SATdf$indexes[!whichError]
+  ERRORS = SATdf$indexes[whichError]
+  indexes = SATdf$indexes[!whichError]
 
-  BGN <- do.call(cbind, sapply(indexes, function(x) {
+  BGN = do.call(cbind, sapply(indexes, function(x) {
     if (x@channel == "stereo") {
       cbind(x@values$left$BGN, x@values$right$BGN)
     } else {
@@ -131,7 +134,7 @@ satBackup <- function(backup) {
     }
   }))
 
-  POW <- do.call(cbind, sapply(indexes, function(x) {
+  POW = do.call(cbind, sapply(indexes, function(x) {
     if (x@channel == "stereo") {
       cbind(x@values$left$POW, x@values$right$POW)
     } else {
@@ -139,8 +142,8 @@ satBackup <- function(backup) {
     }
   }))
 
-  INFO <- lapply(indexes, function(x) {
-    nBins <- length(x@timeBins)
+  INFO = lapply(indexes, function(x) {
+    nBins = length(x@timeBins)
     if (x@channel == "stereo") {
       list(
         rep(x@timeBins, each = 2),
@@ -158,7 +161,7 @@ satBackup <- function(backup) {
     }
   })
 
-  paths <- unlist(sapply(indexes, function(x) {
+  paths = unlist(sapply(indexes, function(x) {
     if (x@channel == "stereo") {
       rep(x@path, length(x@timeBins) * 2)
     } else {
@@ -166,7 +169,7 @@ satBackup <- function(backup) {
     }
   }))
 
-  SATinfo <- data.frame(
+  SATinfo = data.frame(
     PATH = dirname(paths),
     AUDIO = basename(paths),
     CHANNEL = c(unlist(sapply(INFO, function(x) {
@@ -183,14 +186,14 @@ satBackup <- function(backup) {
     })))
   )
 
-  dimBGN <- dim(BGN)
+  dimBGN = dim(BGN)
 
   if (beta) {
     if (type != "multActivity") {
-      BGNQ <- quantile(unlist(BGN), probs = seq(bgnthr[1], bgnthr[2], bgnthr[3])) |>
+      BGNQ = quantile(unlist(BGN), probs = seq(bgnthr[1], bgnthr[2], bgnthr[3])) |>
         setNames(bgnthreshold)
 
-      SATmat <- mapply(
+      SATmat = mapply(
         function(bgnthresh, powthresh) {
           sapply(1:ncol(BGN), function(t) {
             sum(BGN[, t] > BGNQ[names(BGNQ) == bgnthresh] |
@@ -204,17 +207,17 @@ satBackup <- function(backup) {
       )
 
     } else {
-      BGNQ <- quantile(unlist(BGN), probs = bgnthr) |>
+      BGNQ = quantile(unlist(BGN), probs = bgnthr) |>
         setNames(bgnthr)
 
-      SATmat <- BGN > BGNQ |
+      SATmat = BGN > BGNQ |
         POW > powthr
 
     }
 
   } else {
     if (type != "multActivity") {
-      SATmat <- mapply(
+      SATmat = mapply(
         function(bgnthresh, powthresh) {
           sapply(1:ncol(BGN), function(t) {
             sum(BGN[, t] > quantile(BGN[, t], bgnthresh) |
@@ -228,7 +231,7 @@ satBackup <- function(backup) {
       )
 
     } else {
-      SATmat <- sapply(1:ncol(BGN), function(t) {
+      SATmat = sapply(1:ncol(BGN), function(t) {
         BGN[, t] > quantile(BGN[, t], bgnthr) |
           POW[, t] > powthr
       })
@@ -238,12 +241,12 @@ satBackup <- function(backup) {
   }
 
   if (type != "multActivity") {
-    colnames(SATmat) <- combinations
+    colnames(SATmat) = combinations
 
   }
 
   if (type == "soundSat") {
-    normal <- apply(SATmat, 2, function(Q) {
+    normal = apply(SATmat, 2, function(Q) {
       if (length(unique(Q)) != 1) {
         do.call(normality, list(Q))$statistic
       } else {
@@ -253,14 +256,14 @@ satBackup <- function(backup) {
     })
 
     if (normality %in% c("sf.test", "shapiro.test")) {
-      thresholds <- unlist(strsplit(names(which.max(normal)), split = "/"))
-      normOUT <- max(normal, na.rm = TRUE)
+      thresholds = unlist(strsplit(names(which.max(normal)), split = "/"))
+      normOUT = max(normal, na.rm = TRUE)
     } else {
-      thresholds <- unlist(strsplit(names(which.min(normal)), split = "/"))
-      normOUT <- min(normal, na.rm = TRUE)
+      thresholds = unlist(strsplit(names(which.min(normal)), split = "/"))
+      normOUT = min(normal, na.rm = TRUE)
     }
 
-    normname <- switch(
+    normname = switch(
       normality,
       "shapiro.test" = "Shapiro-Wilk",
       "sf.test" = "Shapiro-Francia",
@@ -269,7 +272,7 @@ satBackup <- function(backup) {
       "lillie.test" = "Lilliefors",
       "pearson.test" = "Pearson chi-square"
     )
-    normstat <- switch(
+    normstat = switch(
       normality,
       "shapiro.test" = "W",
       "sf.test" = "W'",
@@ -296,9 +299,9 @@ satBackup <- function(backup) {
       sep = ""
     )
 
-    SATinfo$SAT <- SATmat[, which(normal == normOUT)]
+    SATinfo$SAT = SATmat[, which(normal == normOUT)]
 
-    export <- list(
+    export = list(
       powthresh = numeric(0),
       bgnthresh = numeric(0),
       normality = list(),
@@ -306,27 +309,27 @@ satBackup <- function(backup) {
       errors = list()
     )
 
-    export["powthresh"] <- as.numeric(thresholds[1])
-    export["bgnthresh"] <- as.numeric(thresholds[2]) * 100
-    export[["normality"]]["test"] <- normality
-    export[["normality"]]["statistic"] <- normOUT
-    export[["values"]] <- SATinfo
-    export[["errors"]] <- ERRORS
+    export["powthresh"] = as.numeric(thresholds[1])
+    export["bgnthresh"] = as.numeric(thresholds[2]) * 100
+    export[["normality"]]["test"] = normality
+    export[["normality"]]["statistic"] = normOUT
+    export[["values"]] = SATinfo
+    export[["errors"]] = ERRORS
 
   } else if (type == "soundMat") {
-    export <- list(info = data.frame(),
+    export = list(info = data.frame(),
                    values = matrix(),
                    errors = list())
 
-    export[["info"]] <- SATinfo
-    export[["values"]] <- SATmat
-    export[["errors"]] <- ERRORS
+    export[["info"]] = SATinfo
+    export[["values"]] = SATmat
+    export[["errors"]] = ERRORS
 
     return(export)
 
   } else if (type == "multActivity") {
 
-    export <- list(
+    export = list(
       powthresh = numeric(0),
       bgnthresh = numeric(0),
       info = data.frame(),
@@ -334,11 +337,11 @@ satBackup <- function(backup) {
       errors = list()
     )
 
-    export["powthresh"] <- powthr
-    export["bgnthresh"] <- bgnthr * 100
-    export[["info"]] <- SATinfo
-    export[["values"]] <- SATmat * 1
-    export[["errors"]] <- ERRORS
+    export["powthresh"] = powthr
+    export["bgnthresh"] = bgnthr * 100
+    export[["info"]] = SATinfo
+    export[["values"]] = SATmat * 1
+    export[["errors"]] = ERRORS
 
   }
 

@@ -21,9 +21,9 @@ singleSat(
 )
 }
 \arguments{
-\item{soundfile}{tuneR Wave object, Ruido noise.matrix object or path to a valid audio}
+\item{soundfile}{wav package numeric matrix, tuneR package Wave object, Ruido noise.matrix object or path to a \code{.wav} file}
 
-\item{channel}{channel where the background noise values will be extract from. Available channels are: \code{"stereo"}, \code{"mono"}, \code{"left"} or \code{"right"}. Defaults to \code{"stereo"}.}
+\item{channel}{channel where the background noise values will be extracted from. Available channels are: \code{"stereo"}, \code{"mono"}, \code{"left"} or \code{"right"}. Defaults to \code{"stereo"}.}
 
 \item{timeBin}{size (in seconds) of the time bin. Set to \code{NULL} to use the entire audio as a single bin. Defaults to \code{60}}
 
@@ -33,7 +33,7 @@ singleSat(
 
 \item{wl}{window length of the spectrogram. Defaults to \code{512}.}
 
-\item{window}{window used to smooth the spectrogram. Defaults to \code{signal::hammning(wl)}. Switch to \code{signal::hanning(wl)} if to use hanning instead.}
+\item{window}{window used to smooth the spectrogram. Defaults to \code{signal::hamming(wl)}. Switch to \code{signal::hanning(wl)} if to use hanning instead.}
 
 \item{overlap}{overlap between the spectrogram windows. Defaults to \code{wl/2} (half the window length)}
 
@@ -55,16 +55,19 @@ A list containing the saturation values for all time bins of the inputted file
 Single Soundscape Saturation Index
 }
 \details{
-Soundscape Saturation (\code{SAT}) is a measure of the proportion of frequency bins that are acoustically active in a determined window of time. It was developed by Burivalova et al. 2018 as an index to test the acoustic niche hypothesis.
-To calculate this function, first we need to generate an activity matrix for each time bin of your recording with the following formula:
+Soundscape Saturation (\code{SAT}) quantifies the proportion of frequency bins that are acoustically active within a given time bin. It wasproposed by Burivalova et al. (2018) as a metric to evaluate the acoustic niche hypothesis.
 
-\deqn{a_{mf} = 1\  if (BGN_{mf} > \theta_{1})\  or\  (POW_{mf} > \theta_{2});\  otherwise,\  a_{mf} = 0,}
+For each time bin \eqn{m}, an activity matrix \eqn{a_{m,f}} is first constructed across frequency bins \eqn{f}. A frequency bin is considered active if either its background level (\code{BGN}) or its soundscape power (\code{POW}) exceeds a defined threshold:
 
-Where \eqn{\theta_{1}} is the threshold of BGN values and \eqn{\theta_{2}} is a threshold of dB values.
-Since we define a single threshold for both in this function, we don't have to worry about generating a saturation value for many different combinations.
-For the selected threshold a soundscape saturation measure will be taken with the following formula:
+\deqn{a_{m,f} = \begin{cases} 1, & \text{if } BGN_{m,f} > \theta_1 \ \text{ or } POW_{m,f} > \theta_2 \\ 0, & \text{otherwise} \end{cases}}
 
-\deqn{S_{m} = \frac{\sum_{f = 1}^N a_{mf}}{N}}
+where \eqn{\theta} is a user-defined threshold applied uniformly to both \code{BGN} and \code{POW}.
+
+Soundscape saturation for time bin \eqn{m} is then calculated as the proportion of active frequency bins:
+
+\deqn{S_m = \frac{\sum_{f = 1}^{N} a_{m,f}}{N}}
+
+where \eqn{N} is the total number of frequency bins. Higher values of \code{SAT} indicate a greater fraction of the frequency spectrum being occupied by acoustic activity.
 }
 \examples{
 # First example: Using a Ruido noise.matrix object
@@ -76,14 +79,14 @@ data("sampleBGN")
 sampleBGN
 
 # Run the function
-SAT <- singleSat(sampleBGN)
+SAT = singleSat(sampleBGN)
 
 # View the results
 SAT
 
 # Now lets plot our results to see the dynamics of soundscape saturation by minute
-maxV <- max(unlist(SAT))
-minV <- min(unlist(SAT))
+maxV = max(unlist(SAT))
+minV = min(unlist(SAT))
 
 plot(x = c(1, 3), y = c(minV, maxV), type = "n",
      xlab = "Minute", ylab = "Soundscape Saturation (\%)", xaxt = "n")
@@ -99,35 +102,35 @@ legend("topright", legend = c("Left", "Right"), col = c("#1ECBE1", "#E1341E"), l
 
 library(tuneR)
 
-oldpar <- par(no.readonly = TRUE)
+oldpar = par(no.readonly = TRUE)
 
 # Define parameters for the artificial audio
-samprate <- 12050
-dur <- 59
-n <- samprate * dur
+samprate = 12050
+dur = 59
+n = samprate * dur
 
 # White noise
 set.seed(413)
-noise <- rnorm(n)
+noise = rnorm(n)
 
 # Linear fade-out envelope
-fade <- seq(1, 0, length.out = n)
+fade = seq(1, 0, length.out = n)
 
 # Apply fade
-signal <- noise * fade
+signal = noise * fade
 
 # Create Wave object
-wave <- Wave(
+wave = Wave(
   left = signal,
   samp.rate = samprate,
   bit = 16
 )
 
 # Running singleSat() on the artificial audio
-sat <- singleSat(wave, timeBin = 10)
+sat = singleSat(wave, timeBin = 10)
 
 # Now we can plot the results
-# In the left we have a periodogram and in the right saturaion values
+# In the left we have a periodogram and in the right saturation values
 # along one minute
 par(mfrow = c(1,2))
 image(periodogram(wave, width = 8192, normalize = FALSE), xlab = "Time (s)",
@@ -147,17 +150,17 @@ par(oldpar)
 # Lets begin by loading an audio from the online Zenodo library and
 # read it directly with the function
 # Getting audiofile from the online Zenodo library
-dir <- paste(tempdir(), "forExample", sep = "/")
+dir = paste(tempdir(), "forExample", sep = "/")
 dir.create(dir)
-rec <- paste0("GAL24576_20250401_", sprintf("\%06d", 0),".wav")
-recDir <- paste(dir,rec , sep = "/")
-url <- paste0("https://zenodo.org/records/17575795/files/", rec, "?download=1")
+rec = paste0("GAL24576_20250401_", sprintf("\%06d", 0),".wav")
+recDir = paste(dir,rec , sep = "/")
+url = paste0("https://zenodo.org/records/17575795/files/", rec, "?download=1")
 
 # Downloading the file, might take some time denpending on your internet
 download.file(url, destfile = recDir, mode = "wb")
 
 # Now we calculate soundscape saturation for both sides of the recording
-sat <- singleSat(recDir)
+sat = singleSat(recDir)
 
 # Printing the results
 print(sat)
@@ -172,5 +175,5 @@ unlink(dir, recursive = TRUE)
 Burivalova, Z., Towsey, M., Boucher, T., Truskinger, A., Apelis, C., Roe, P., & Game, E. T. (2018). Using soundscapes to detect variable degrees of human influence on tropical forests in Papua New Guinea. Conservation Biology, 32(1), 205-215. https://doi.org/10.1111/cobi.12968
 }
 \seealso{
-\code{\link[=soundSat]{soundSat()}} and \code{\link[=soundMat]{soundMat()}} to work with multiple audio files and \code{\link[=activity]{activity()}} to get only the activity matrix
+\code{\link[=soundSat]{soundSat()}} and \code{\link[=soundMat]{soundMat()}} to work with multiple audio files and \code{\link[=activity]{activity()}} to get only the activity matrix.
 }
