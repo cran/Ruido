@@ -265,7 +265,8 @@ bgNoise. = function(soundfile,
                      window = signal::hamming(wl),
                      overlap = ceiling(length(window) / 2),
                      histbreaks = "FD",
-                     DCfix = TRUE) {
+                     DCfix = TRUE,
+                     noiseOBJ = new("noise.matrix.internal")) {
 
   audio = typeof(soundfile)
 
@@ -317,7 +318,7 @@ bgNoise. = function(soundfile,
     window = window,
     histbreaks = histbreaks,
     DCfix = DCfix,
-    noiseOBJ = new("noise.matrix.internal")
+    noiseOBJ = noiseOBJ
   )
 
 }

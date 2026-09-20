@@ -33,7 +33,7 @@ ENTspec(
 This function returns a \link[=noise.matrix-class]{noise.matrix} object.
 }
 \description{
-Calculate the Temporal Entropy values of a single audio using the methodology proposed in Towsey, et al. 2014
+Calculate the Temporal Entropy values of a single audio using the methodology proposed in Towsey, et al. 2017
 }
 \details{
 The Temporal Entropy (\code{ENT}) quantifies how concentrated or dispersed acoustic energy is over time within each frequency bin. Unlike indices that track frame-to-frame change (e.g. \code{ACI}), \code{ENT} treats the distribution of energy across an entire time bin as a probability mass function and measures its Shannon entropy, capturing whether energy is spread evenly through time (high entropy, low concentration) or concentrated into brief pulses (low entropy, high concentration).
@@ -83,7 +83,7 @@ plot(ent)
 
 }
 \references{
-Towsey, M., Wimmer, J., Williamson, I., & Roe, P. (2014). The use of acoustic indices to determine avian species richness in audio-recordings of the environment. Ecological Informatics, 21, 110–119. https://doi.org/10.1016/j.ecoinf.2013.11.007
+Towsey, M. W. (2017). The calculation of acoustic indices derived from long-duration recordings of the natural environment. In eprints.qut.edu.au. https://eprints.qut.edu.au/110634/
 }
 \seealso{
 \code{\link[=ACIspec]{ACIspec()}} to calculate the Acoustic Complexity Index and \code{\link[=bgNoise]{bgNoise()}} to calculate Background Noise and Soundscape Power.

@@ -196,10 +196,8 @@ bgNoise = function(soundfile,
 
   if (BGNexp@channel == "stereo") {
     BGNexp@wl = nrow(BGNexp@values$left$BGN)
-
   } else {
     BGNexp@wl = nrow(BGNexp@values[[channel]]$BGN)
-
   }
 
   return(BGNexp)

@@ -43,7 +43,8 @@ setMethod("show", signature(object = "noise.matrix"), function(object) {
   nBins = length(object@timeBins)
   titleMap = list("BGN+POW" = "Background Noise and Soundscape Power",
                   "ACI" = "Spectral Acoustic Complexity Index",
-                  "ENT" = "Spectral Acoustic Entrophy Index")
+                  "ENT" = "Spectral Acoustic Entrophy Index",
+                  "ACT" = "Acoustic Activity")
 
   cat(titleMap[[paste(object@index, collapse = "+")]])
   cat("\nIndex:                 ", object@index)
@@ -266,7 +267,7 @@ setMethod("plot", signature(x = "noise.matrix"), function(x,
     draw0 = draw0,
     box = box,
     axes = axes,
-    annotate = TRUE,
+    annotate = annotate,
     ...
   )
 

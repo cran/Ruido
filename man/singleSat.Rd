@@ -145,8 +145,15 @@ axis(2)
 
 par(oldpar)
 
+# Third example: Calculating activity beforehand
+## You can use a noise.matrix with activity values to calculate saturation.
+
+data("sampleBGN")
+sampleBGN
+singleSat(activity(sampleBGN))
+
 \donttest{
-# Third example: Reading a file directly
+# Fourth example: Reading a file directly
 # Lets begin by loading an audio from the online Zenodo library and
 # read it directly with the function
 # Getting audiofile from the online Zenodo library

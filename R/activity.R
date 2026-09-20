@@ -49,19 +49,19 @@
 #' sampleBGN
 #'
 #' # Run the function
-#' sat = activity(sampleBGN)
+#' act = activity(sampleBGN)
 #'
 #' # Now we can plot the results for the left channel
-#' satLeft = sat[,1:3]
-#' satDim = dim(satLeft)
+#' actLeft = act@values$left$ACT
+#' actDim = dim(actLeft)
 #' numericTime = seq(0, sum(sampleBGN@timeBins), by = sampleBGN@timeBins[1])
 #' labels = paste0(numericTime[-length(numericTime)], "-", numericTime[-1], "s")
 #'
-#' satDF = data.frame(BIN = rep(paste0("BIN", seq(satDim[2])), each = satDim[1]),
-#'                     WIN = rep(seq(satDim[1]), satDim[2]),
-#'                     ACT = factor(c(sat), levels = c(0,1)))
+#' actDF = data.frame(BIN = rep(paste0("BIN", seq(actDim[2])), each = actDim[1]),
+#'                     WIN = rep(seq(actDim[1]), actDim[2]),
+#'                     ACT = factor(unlist(actLeft), levels = c(0, 1)))
 #'
-#' ggplot(satDF, aes(x = BIN, y = WIN, fill = ACT)) +
+#' ggplot(actDF, aes(x = BIN, y = WIN, fill = ACT)) +
 #'   geom_tile() +
 #'   theme_bw() +
 #'   scale_fill_manual(values = c("white", "black")) +
@@ -71,19 +71,21 @@
 #'   guides(fill = guide_legend(title = "Activity"))
 #'
 #' }
-activity = function(soundfile,
-                    channel = "stereo",
-                    timeBin = 60,
-                    dbThreshold = -90,
-                    targetSampRate = NULL,
-                    wl = 512,
-                    window = signal::hamming(wl),
-                    overlap = ceiling(length(window) / 2),
-                    histbreaks = "FD",
-                    DCfix = TRUE,
-                    powthr = 10,
-                    bgnthr = 0.8,
-                    beta = TRUE) {
+activity = function(
+  soundfile,
+  channel = "stereo",
+  timeBin = 60,
+  dbThreshold = -90,
+  targetSampRate = NULL,
+  wl = 512,
+  window = signal::hamming(wl),
+  overlap = ceiling(length(window) / 2),
+  histbreaks = "FD",
+  DCfix = TRUE,
+  powthr = 10,
+  bgnthr = 0.8,
+  beta = TRUE
+) {
   argHandler(
     FUN = "activity",
     soundfile = soundfile,
@@ -116,40 +118,40 @@ activity = function(soundfile,
       dbThreshold = dbThreshold,
       wl = wl,
       histbreaks = histbreaks,
-      DCfix
+      DCfix = DCfix,
+      noiseOBJ = new("noise.matrix")
     )
   }
 
   nBins = length(BGNPOW@timeBins)
 
+  # The purpose of the "* 1" is to convert the values from logical to numerical (0 = FALSE and 1 = TRUE)
   if (BGNPOW@channel == "stereo") {
     BGN = cbind(BGNPOW@values$left$BGN, BGNPOW@values$right$BGN)
-    names = paste0(rep(c("left", "right"), each = nBins), seq(nBins))
   } else {
     BGN = BGNPOW@values[[BGNPOW@channel]]$BGN
-    names = paste0(rep(BGNPOW@channel, nBins), seq(nBins))
   }
 
+  BGNPOW@values = lapply(BGNPOW@values, function(ch) {
+    if (beta) {
+      BGNQ = quantile(unlist(BGN), bgnthr)
+      result = (ch$BGN > BGNQ | ch$POW > powthr) * 1
+    } else {
+      result = sapply(1:nBins, function(t) {
+        (ch$BGN[, t] > quantile(ch$BGN[, t], bgnthr) | ch$POW[, t] > powthr) * 1
+      })
+    }
+    colnames(result) = paste0("ACT", 1:nBins)
+    list("ACT" = as.data.frame(result))
+  })
+
+  BGNPOW@index = "ACT"
   if (BGNPOW@channel == "stereo") {
-    POW = cbind(BGNPOW@values$left$POW, BGNPOW@values$right$POW)
-  } else {
-    POW = BGNPOW@values[[BGNPOW@channel]]$POW
-  }
-
-  if (beta) {
-    BGNQ = quantile(unlist(BGN), bgnthr)
-
-    singSat = BGN > BGNQ | POW > powthr
+    BGNPOW@wl = nrow(BGNPOW@values$left$ACT)
 
   } else {
-    singSat = sapply(1:ncol(BGN), function(t) {
-      BGN[, t] > quantile(BGN[, t], bgnthr) | POW[, t] > powthr
-
-    })
-
+    BGNPOW@wl = nrow(BGNPOW@values[[channel]]$ACT1)
   }
 
-  # The purpose of the "* 1" is to convert the values from logical to numerical (0 = FALSE and 1 = TRUE)
-  return(singSat * 1)
-
+  return(BGNPOW)
 }

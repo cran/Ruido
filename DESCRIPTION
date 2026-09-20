@@ -1,6 +1,6 @@
 Package: Ruido
 Title: Soundscape Spectral Metrics
-Version: 1.1.0
+Version: 1.1.1
 Date: 2026-9-1
 Authors@R: c(
     person(given = "Arthur Igor da", family = "Fonseca-Freire", email = "arthur.igorr@gmail.com", role = c("aut", "cre", "cph")),
@@ -21,9 +21,9 @@ Language: en-US
 LazyData: true
 Config/roxygen2/version: 8.1.0
 NeedsCompilation: no
-Packaged: 2026-09-01 22:25:39 UTC; arthurigorr
+Packaged: 2026-09-20 14:11:42 UTC; arthurigorr
 Author: Arthur Igor da Fonseca-Freire [aut, cre, cph],
   Weslley Geremias dos Santos [aut],
   Lucas Rodriguez Forti [aut]
 Repository: CRAN
-Date/Publication: 2026-09-01 23:00:02 UTC
+Date/Publication: 2026-09-20 15:00:12 UTC
