@@ -2,8 +2,12 @@
 
 export(ACIspec)
 export(ENTspec)
+export(EVNspec)
 export(activity)
 export(bgNoise)
+export(bgn)
+export(hamming)
+export(hanning)
 export(multActivity)
 export(satBackup)
 export(singleSat)
@@ -26,15 +30,16 @@ importFrom(graphics,
   plot.window,
   plot.xy
 )
+importFrom(matrixStats,colMaxs)
 importFrom(methods,
   is,
   new,
   slot
 )
 importFrom(nortest,ad.test)
-importFrom(signal,specgram)
 importFrom(stats,
   IQR,
+  mvfft,
   quantile,
   setNames,
   shapiro.test,
@@ -49,3 +54,4 @@ importFrom(utils,
   head
 )
 importFrom(wav,read_wav)
+useDynLib(Ruido, .registration = TRUE)

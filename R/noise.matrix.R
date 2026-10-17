@@ -41,10 +41,12 @@ setClass("noise.matrix.internal",
 
 setMethod("show", signature(object = "noise.matrix"), function(object) {
   nBins = length(object@timeBins)
-  titleMap = list("BGN+POW" = "Background Noise and Soundscape Power",
-                  "ACI" = "Spectral Acoustic Complexity Index",
-                  "ENT" = "Spectral Acoustic Entrophy Index",
-                  "ACT" = "Acoustic Activity")
+  titleMap = list(
+    "BGN+POW" = "Background Noise and Soundscape Power",
+    "ACI" = "Spectral Acoustic Complexity Index",
+    "ENT" = "Spectral Acoustic Entrophy Index",
+    "ACT" = "Acoustic Activity"
+  )
 
   cat(titleMap[[paste(object@index, collapse = "+")]])
   cat("\nIndex:                 ", object@index)
@@ -236,10 +238,13 @@ setMethod("plot", signature(x = "noise.matrix"), function(x,
   }
 
   if (is.null(xlab)) {
-    xlab = switch(paste(sort(x@index), collapse = "+"),
-                  "BGN+POW" = "dB",
-                  "ACI" = "Amplitude",
-                  "ENT" = "Entropy")
+    xlab = switch(
+      paste(sort(x@index), collapse = "+"),
+      "BGN+POW" = "dB",
+      "ACI" = "Amplitude",
+      "ENT" = "Entropy",
+      "EVN" = "Events Per Time"
+    )
   }
 
   yunit = match.arg(yunit)

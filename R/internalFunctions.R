@@ -1,255 +1,3 @@
-# processChannel.BGN ----------------------------------------------------------
-## This version of processChannel handles the calculation of the BGN and POW index.
-## This is called by bgNoise and bgNoise.
-## This should not be seen or used by the user, as it is only intended for internal use by other functions.
-
-processChannel.BGN = function(channelData,
-                               samp.rate,
-                               channel,
-                               timeBin,
-                               wl,
-                               overlap,
-                               dbThreshold,
-                               window,
-                               histbreaks,
-                               DCfix,
-                               noiseOBJ) {
-  allSamples = if (is.null(timeBin)) {
-    data.frame(b = 1, e = length(channelData[1, ]))
-  } else {
-    getSampleBins(length(channelData[1, ]), samp.rate, timeBin)
-  }
-
-  frameBin = nrow(allSamples)
-
-  channelData = switch(
-    channel,
-    "stereo" = list(left  = channelData[1, ], right = channelData[2, ]),
-    "mono"   = list(mono  = channelData[1, ]),
-    "left"   = list(left  = channelData[1, ]),
-    "right"  = list(right = channelData[2, ])
-  )
-
-  noiseOBJ@values = lapply(channelData, function(x) {
-    if (DCfix) {
-      x = x - mean(x)
-    }
-
-    tempHolder = apply(allSamples, 1, function(y) {
-      list(signal::specgram(
-        x = x[y[1]:y[2]],
-        n = wl,
-        Fs = samp.rate,
-        window = window,
-        overlap = overlap
-      )$S)
-    })
-
-    BGNPOWdf = data.frame(do.call(cbind, lapply(lapply(tempHolder, function(singleBin) {
-      spectS = abs(singleBin[[1]])
-
-      spectS = 10 * log10(spectS / max(spectS))
-
-      if (!is.null(dbThreshold)) {
-        spectS[spectS < dbThreshold] = dbThreshold
-      }
-
-      apply(spectS, 1, function(z) {
-        dbMax = max(z)
-        dbMin = min(z)
-
-        num_bins = if (is.numeric(histbreaks)) {
-          histbreaks
-        } else {
-          switch(
-            histbreaks,
-            "FD"      = nclass.FD(z),
-            "Sturges" = nclass.Sturges(z),
-            "scott"   = nclass.scott(z)
-          )
-        }
-        breaks   = seq(dbMin, dbMax, length.out = num_bins + 1)
-        modalBin = which.max(tabulate(findInterval(x = z, vec = breaks)))
-        modal_intensity = dbMin + modalBin * (breaks[2] - breaks[1])
-
-        c(BGN = modal_intensity, POW = dbMax - modal_intensity)
-      })
-
-    }), function(x)
-      data.frame(t(x)))))
-
-    colnames(BGNPOWdf) = paste0(rep(c("BGN", "POW"), frameBin), rep(1:frameBin, each = 2))
-
-    BGN = data.frame(BGNPOWdf[, grepl("BGN", colnames(BGNPOWdf)), drop = FALSE])
-    POW = data.frame(BGNPOWdf[, grepl("POW", colnames(BGNPOWdf)), drop = FALSE])
-
-    return(list(BGN = BGN, POW = POW))
-
-  })
-
-  noiseOBJ@index = c("BGN", "POW")
-  noiseOBJ@timeBins = setNames(round((allSamples$e - allSamples$b) / samp.rate), paste0("BIN", seq(frameBin)))
-  noiseOBJ@sampRate = samp.rate
-  noiseOBJ@channel = channel
-
-  return(noiseOBJ)
-
-}
-
-# processChannel.ACI ----------------------------------------------------------
-## This version of processChannel handles the calculation of the ACI index.
-## This is called by ACIspec()
-## This should not be seen or used by the user, as it is only intended for internal use by other functions.
-
-processChannel.ACI = function(channelData,
-                               samp.rate,
-                               channel,
-                               timeBin,
-                               j,
-                               wl,
-                               overlap,
-                               window,
-                               noiseOBJ) {
-  allSamples = if (is.null(timeBin)) {
-    data.frame(b = 1, e = length(channelData[1, ]))
-  } else {
-    getSampleBins(length(channelData[1, ]), samp.rate, timeBin)
-  }
-
-  frameBin = nrow(allSamples)
-
-  channelData = switch(
-    channel,
-    "stereo" = list(left  = channelData[1, ], right = channelData[2, ]),
-    "mono"   = list(mono  = channelData[1, ]),
-    "left"   = list(left  = channelData[1, ]),
-    "right"  = list(right = channelData[2, ])
-  )
-
-  noiseOBJ@values = lapply(channelData, function(x) {
-    tempHolder = apply(allSamples, 1, function(y) {
-      list(signal::specgram(
-        x = x[y[1]:y[2]],
-        n = wl,
-        Fs = samp.rate,
-        window = window,
-        overlap = overlap
-      )$S)
-    })
-
-    ACIdf = data.frame(do.call(cbind, lapply(tempHolder, function(singleBin) {
-      spectS = abs(singleBin[[1]])
-
-      specDim = dim(spectS)
-      duration = length(spectS) / samp.rate
-
-      jump = as.integer(j / (duration / specDim[2]))
-      forJ = ceiling(specDim[2] / jump)
-
-      ACIvals = vector("numeric", forJ)
-      ACIvect = vector("numeric", specDim[1])
-
-      for (s in 1:specDim[1]) {
-        for (t in 1:forJ) {
-          timeMin = (t - 1) * jump + 1
-          timeMax = min(t * jump, specDim[2])
-
-          D = sum(abs(diff(spectS[s, timeMin:(timeMax)])))
-
-          ACIvals[t] = D / sum(spectS[s, timeMin:timeMax])
-        }
-
-        ACIvect[s] = sum(ACIvals)
-
-      }
-
-      return(ACIvect)
-
-    })))
-
-    colnames(ACIdf) = paste0("ACI", rep(1:frameBin))
-    return(list(ACI = ACIdf))
-
-  })
-
-  noiseOBJ@index = "ACI"
-  noiseOBJ@timeBins = setNames(round((allSamples$e - allSamples$b) / samp.rate), paste0("BIN", seq(frameBin)))
-  noiseOBJ@sampRate = samp.rate
-  noiseOBJ@channel = channel
-
-  return(noiseOBJ)
-
-}
-
-
-# processChannel.ENT ------------------------------------------------------
-## This version of processChannel handles the calculation of the ENT index.
-## This is called by ENTspec()
-## This should not be seen or used by the user, as it is only intended for internal use by other functions.
-
-processChannel.ENT = function(channelData,
-                               samp.rate,
-                               channel,
-                               timeBin,
-                               wl,
-                               overlap,
-                               window,
-                               noiseOBJ) {
-  allSamples = if (is.null(timeBin)) {
-    data.frame(b = 1, e = length(channelData[1, ]))
-  } else {
-    getSampleBins(length(channelData[1, ]), samp.rate, timeBin)
-  }
-
-  frameBin = nrow(allSamples)
-
-  channelData = switch(
-    channel,
-    "stereo" = list(left  = channelData[1, ], right = channelData[2, ]),
-    "mono"   = list(mono  = channelData[1, ]),
-    "left"   = list(left  = channelData[1, ]),
-    "right"  = list(right = channelData[2, ])
-  )
-
-  noiseOBJ@values = lapply(channelData, function(x) {
-    tempHolder = apply(allSamples, 1, function(y) {
-      list(signal::specgram(
-        x = x[y[1]:y[2]],
-        n = wl,
-        Fs = samp.rate,
-        window = window,
-        overlap = overlap
-      )$S)
-    })
-
-    ENTdf = data.frame(do.call(cbind, lapply(tempHolder, function(singleBin) {
-      spectS = abs(singleBin[[1]])
-      amp2    = spectS ** 2
-
-      rowTot = rowSums(amp2)
-      rowTot[rowTot == 0] = 1 ## Safeguard!
-      pmf = amp2 / rowTot
-
-      term = ifelse(pmf > 0, pmf * log2(pmf), 0)
-      H = -rowSums(term) / log2(dim(amp2)[2])
-
-      return(1 - H)
-    })))
-
-    colnames(ENTdf) = paste0("ENT", rep(1:frameBin))
-    return(list(ENT = ENTdf))
-
-  })
-
-  noiseOBJ@index = "ENT"
-  noiseOBJ@timeBins = setNames(round((allSamples$e - allSamples$b) / samp.rate), paste0("BIN", seq(frameBin)))
-  noiseOBJ@sampRate = samp.rate
-  noiseOBJ@channel = channel
-
-  return(noiseOBJ)
-
-}
-
 # bgnoise alts ------------------------------------------------------------
 ## bgNoise
 ## This is a hidden version of the bgNoise function.
@@ -257,17 +5,17 @@ processChannel.ENT = function(channelData,
 ## by a higher function.
 
 bgNoise. = function(soundfile,
-                     channel = "stereo",
-                     timeBin = 60,
-                     dbThreshold = -90,
-                     targetSampRate = NULL,
-                     wl = 512,
-                     window = signal::hamming(wl),
-                     overlap = ceiling(length(window) / 2),
-                     histbreaks = "FD",
-                     DCfix = TRUE,
-                     noiseOBJ = new("noise.matrix.internal")) {
-
+                    channel = "stereo",
+                    timeBin = 60,
+                    dbThreshold = -90,
+                    dbRef = 10,
+                    targetSampRate = NULL,
+                    wl = 512,
+                    window = hamming(wl),
+                    overlap = ceiling(length(window) / 2),
+                    histbreaks = "FD",
+                    DCfix = TRUE,
+                    noiseOBJ = new("noise.matrix.internal")) {
   audio = typeof(soundfile)
 
   if (audio == "character") {
@@ -279,9 +27,7 @@ bgNoise. = function(soundfile,
   } else if (audio == "S4") {
     tempSamp = soundfile@samp.rate
     if (soundfile@stereo) {
-      soundfile = matrix(c(soundfile@left, soundfile@right),
-                         nrow = 2,
-                         byrow = TRUE)
+      soundfile = rbind(soundfile@left, soundfile@right)
     } else {
       soundfile = matrix(soundfile@left, nrow = 1, byrow = TRUE)
     }
@@ -315,30 +61,33 @@ bgNoise. = function(soundfile,
     wl = wl,
     overlap = overlap,
     dbThreshold = dbThreshold,
+    dbRef = dbRef,
     window = window,
     histbreaks = histbreaks,
     DCfix = DCfix,
     noiseOBJ = noiseOBJ
   )
 
+  return(BGNexp)
+
 }
 
-## bgNoise
+## bgNoise..
 ## This is another hidden version of the bgNoise function.
 ## This version is used in functions that take a folder as input.
 ## It skips checks and reads the audio files directly.
 
 bgNoise.. = function(soundfile,
-                      channel = "stereo",
-                      timeBin = 60,
-                      dbThreshold = -90,
-                      targetSampRate = NULL,
-                      wl = 512,
-                      window = signal::hamming(wl),
-                      overlap = ceiling(length(window) / 2),
-                      histbreaks = "FD",
-                      DCfix = TRUE) {
-
+                     channel = "stereo",
+                     timeBin = 60,
+                     dbThreshold = -90,
+                     dbRef = 10,
+                     targetSampRate = NULL,
+                     wl = 512,
+                     window = hamming(wl),
+                     overlap = ceiling(length(window) / 2),
+                     histbreaks = "FD",
+                     DCfix = TRUE) {
   if (tolower(tools::file_ext(soundfile)) == "wav") {
     soundfile = wav::read_wav(soundfile)
   } else {
@@ -372,11 +121,14 @@ bgNoise.. = function(soundfile,
     wl = wl,
     overlap = overlap,
     dbThreshold = dbThreshold,
+    dbRef = dbRef,
     window = window,
     histbreaks = histbreaks,
     DCfix = DCfix,
     noiseOBJ = new("noise.matrix.internal")
   )
+
+  return(BGNexp)
 
 }
 
@@ -451,6 +203,20 @@ argHandler = function(FUN, ...) {
     }
   }
 
+  #### dbRef ----
+  if ("dbRef" %in% names(args)) {
+    if (!is.numeric(args$dbRef) ||
+        length(args$dbRef) != 1 || args$dbRef < 0)
+      stop(
+        paste0(
+          'dbRef = ',
+          capture.output(dput(args$dbRef)),
+          '\ndbRef must be a single non-negative number'
+        ),
+        call. = FALSE
+      )
+  }
+
   #### targetSampRate ----
   if (!is.null(args$targetSampRate) &&
       (
@@ -470,37 +236,37 @@ argHandler = function(FUN, ...) {
 
   #### wl ----
   if (!is.numeric(args$wl) || length(args$wl) != 1 || args$wl < 0)
-    stop(
-      paste0(
-        'wl = ',
-        capture.output(dput(args$wl)),
-        '\nwl must be a single non-negative number'
-      ),
-      call. = FALSE
-    )
+    stop(paste0(
+      'wl = ',
+      capture.output(dput(args$wl)),
+      '\nwl must be a single non-negative number'
+    ),
+    call. = FALSE)
 
   #### window ----
-  if (!is.numeric(args$window) ||
-      length(args$window) != args$wl) {
-    stop(
-      paste0(
-        "On window = ... \nPlease set window to signal::hamming(wl) or signal::hanning(wl)"
+  if ("window" %in% names(args)) {
+    if (!is.numeric(args$window) ||
+        length(args$window) != args$wl) {
+      stop(paste0(
+        "On window = ... \nPlease set window to hamming(wl) or hanning(wl)"
       ),
-      call. = FALSE
-    )
+      call. = FALSE)
+    }
   }
 
   #### overlap ----
-  if (!is.numeric(args$overlap) ||
-      length(args$overlap) != 1 || args$overlap < 0)
-    stop(
-      paste0(
-        'overlap = ',
-        capture.output(dput(args$overlap)),
-        '\noverlap must be a single non-negative number'
-      ),
-      call. = FALSE
-    )
+  if ("overlap" %in% names(args)) {
+    if (!is.numeric(args$overlap) ||
+        length(args$overlap) != 1 || args$overlap < 0)
+      stop(
+        paste0(
+          'overlap = ',
+          capture.output(dput(args$overlap)),
+          '\noverlap must be a single non-negative number'
+        ),
+        call. = FALSE
+      )
+  }
 
   #### histbreaks ----
   if ("histbreaks" %in% names(args)) {
@@ -519,7 +285,8 @@ argHandler = function(FUN, ...) {
 
   #### DCfix ----
   if ("DCfix" %in% names(args)) {
-    if (length(args$DCfix) != 1 || !is.logical(args$DCfix) || is.na(args$DCfix)) {
+    if (length(args$DCfix) != 1 ||
+        !is.logical(args$DCfix) || is.na(args$DCfix)) {
       stop(paste0(
         'DCfix = ',
         capture.output(dput(args$DCfix)),
@@ -702,56 +469,127 @@ argHandler = function(FUN, ...) {
 # normHandler -------------------------------------------------------------
 ## This function deals with the normality tests
 
-normHandler = function(normality) {
-  if (normality == "shapiro.test") {
-    answernorm = readline(
-      "
-      If you are working with a large dataset, then shapiro.test will most likely result in an error.
-      Do you wish to use Anderson-Darling test instead? (Y/N).
-      "
-    )
+normHandler = function(normality, SIZE) {
+  minN = c(
+    shapiro.test = 3,
+    sf.test = 5,
+    lillie.test = 5,
+    ad.test = 8,
+    cvm.test = 8,
+    pearson.test = 2
+  )
+  maxN = c(
+    shapiro.test = 5000,
+    sf.test = 5000,
+    lillie.test = Inf,
+    ad.test = Inf,
+    cvm.test = Inf,
+    pearson.test = Inf
+  )
 
-    if (answernorm == "Y") {
-      normality = "ad.test"
-    } else if (answernorm == "N") {
-      message("Using shapiro.test to test normality.")
-    } else {
-      stop("Please answer with Y or N next time.", call. = FALSE)
-    }
+  default = if (SIZE > 5000)
+    "ad.test"
+  else
+    "shapiro.test"
 
-  } else if (normality == "ks.test") {
-    answernorm = readline(
-      "ks.test is not supported since many combinations may have identifical values.
-      Type N to ignore this warning.
-      However, we recommend choosing one of these tests:
-      a ad.test
-      b cvm.test
-      c lillie.test
-      d pearson.test
-      e sf.test
-      (Type the letter to choose)
-      "
-    )
+  if (normality == "auto")
+    return(default)
 
-    normality = switch(
-      answernorm,
-      "a" = "ad.test",
-      "b" = "cvm.test",
-      "c" = "lillie.test",
-      "d" = "pearson.test",
-      "e" = "sf.test",
-      "N" = "ks.test",
-      "STOP"
-    )
+  if (isTRUE(SIZE >= minN[normality] &&
+             SIZE <= maxN[normality]))
+    return(normality)
 
-    if (normality == "STOP") {
-      stop("Please pick a letter next time.", call. = FALSE)
-    }
+  warning("'",
+          normality,
+          "' doesn't fit n = ",
+          SIZE,
+          ". Using '",
+          default,
+          "' instead.")
+  default
+}
 
+# .spect -----------------------------------------------------
+
+.spect = function(x, n, window, overlap) {
+  winSize = length(window)
+
+  if (length(x) > winSize) {
+    offset = seq.int(1, length(x) - winSize, by = (winSize - overlap))
+  } else {
+    offset = 1
   }
 
-  return(normality)
+  S = .Call(
+    "spectMat",
+    as.numeric(x),
+    as.integer(n),
+    as.numeric(window),
+    as.integer(offset),
+    PACKAGE = "Ruido"
+  )
 
+  S = mvfft(S)
+
+  keepThese = if (n %% 2 == 1) {
+    (n + 1) / 2
+  } else {
+    n / 2
+  }
+
+  S[1:keepThese, , drop = FALSE]
+}
+
+# hBreaks ----------------------------------------------------------------
+# Function factory made to prevent checks for histbreaks every loop on processChannel.bgn
+hBreaks.MAT = function(histbreaks) {
+  if (is.numeric(histbreaks)) {
+    function(z) {
+      rowsNumeric(z, n = histbreaks)
+    }
+  } else {
+    switch(
+      histbreaks,
+      "FD"      = function(z) {
+        rowsFD(z, digits = 5)
+      }
+      ,
+      "Sturges" = function(z) {
+        rowsSturges(z)
+      }
+      ,
+      "scott"   = function(z)
+      {
+        rowsscott(z)
+      }
+    )
+
+  }
+}
+
+hBreaks = function(histbreaks) {
+  if (is.numeric(histbreaks)) {
+    function(x) {
+      histbreaks + 1
+    }
+  } else {
+    switch(
+      histbreaks,
+      "FD"      = function(z) {
+        nclass.FD(z) + 1
+      }
+      ,
+      "Sturges" = function(z) {
+        nclass.Sturges(z) + 1
+      }
+      ,
+      "scott"   = function(z)
+      {
+        nclass.scott(z) + 1
+      }
+    )
+
+  }
 }
 
 # getSampleBins -----------------------------------------------------------
@@ -766,6 +604,7 @@ getSampleBins = function(samples, samp.rate, binSize) {
 
 }
 
+# plotNOISE --------------------------------------------------------------
 #' Plot noise.matrix objects
 #'
 #' @param x an `noise.matrix` object
@@ -799,21 +638,21 @@ getSampleBins = function(samples, samp.rate, binSize) {
 #' @importFrom utils head
 #'
 plotNOISE = function(x,
-                      channel,
-                      bin,
-                      index,
-                      nbreaks,
-                      yunit,
-                      main,
-                      xlab,
-                      ylab,
-                      col,
-                      type,
-                      draw0,
-                      box,
-                      axes,
-                      annotate,
-                      ...) {
+                     channel,
+                     bin,
+                     index,
+                     nbreaks,
+                     yunit,
+                     main,
+                     xlab,
+                     ylab,
+                     col,
+                     type,
+                     draw0,
+                     box,
+                     axes,
+                     annotate,
+                     ...) {
   channels = if (channel == "stereo") {
     c("left", "right")
   } else {
@@ -935,4 +774,51 @@ plotNOISE = function(x,
 
   }
 
+}
+
+rowsFD = function(z, digits = 5) {
+  h = 2 * matrixStats::rowIQRs(z. <- signif(z, digits = digits))
+
+  if (any(h == 0)) {
+    who = which(h == 0)
+
+    al = 1 / 4
+    alMin = 1 / 512
+
+    while (length(who) > 0 &&
+           (al = al / 2) >= alMin) {
+      q = matrixStats::rowQuantiles(z.[who, , drop = FALSE], probs = c(al, 1 - al)
+                                    , drop = FALSE)
+      h[who] = (q[, 2] - q[, 1]) / (1 - 2 * al)
+      who = who[h[who] == 0]
+    }
+  }
+
+  if (any(h == 0)) {
+    who = which(h == 0)
+    h[who] = 3.5 * matrixStats::rowSds(z.[who, , drop = FALSE])
+  }
+
+  out = ceiling(matrixStats::rowDiffs(matrixStats::rowRanges(z)) / h  * ncol(z)^(1 / 3)) + 1
+  out[h < 1] = 1
+
+  return(c(out))
+}
+
+rowsSturges = function(z) {
+  rep(ceiling(log(ncol(z), base = 2) + 1), nrow(z))
+}
+
+rowsscott = function(z) {
+  h = 3.5 * sqrt(matrixStats::rowVars(z)) * ncol(z)^(-1 / 3)
+  positive = which(h > 0)
+  negative = which(h < 0)
+  h[negative] = 1
+  h[positive] = pmax(1, ceiling(matrixStats::rowDiffs(matrixStats::rowRanges(z)) / h)) + 1
+
+  return(h)
+}
+
+rowsNumeric = function(z, n) {
+  rep(n + 1, nrow(z))
 }

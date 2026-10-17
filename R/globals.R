@@ -10,6 +10,7 @@ utils::globalVariables(c(
   'overlap',
   'channel',
   'dbThreshold',
+  'dbRef',
   'histbreaks',
   'DCfix',
   'normality',
