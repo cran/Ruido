@@ -19,6 +19,7 @@ multActivity(
   powthr = 10,
   bgnthr = 0.8,
   beta = TRUE,
+  saveNoise = FALSE,
   backup = NULL
 )
 }
@@ -41,7 +42,7 @@ multActivity(
 
 \item{overlap}{overlap between the spectrogram windows. Defaults to \code{wl/2} (half the window length)}
 
-\item{histbreaks}{breaks used to calculate Background Noise. Available breaks are: \code{"FD"}, \verb{"Sturges}", \code{"scott"} and \code{100}. Defaults to \code{"FD"}.
+\item{histbreaks}{breaks used to calculate Background Noise. Available breaks are: \code{"FD"}, \code{"Sturges"}, \code{"scott"} and \code{100}. Defaults to \code{"FD"}.
 \if{html}{\out{<br>}}Can also be set to any numerical value to limit or increase the amount of breaks.}
 
 \item{DCfix}{if the DC offset should be removed before the metrics are calculated. Defaults to \code{TRUE}}
@@ -51,6 +52,8 @@ multActivity(
 \item{bgnthr}{single numeric value to calculate the activity matrix for background noise (in \%). Defaults to \code{0.8}}
 
 \item{beta}{how BGN thresholds are calculated. If \code{TRUE}, BGN thresholds are calculated using all recordings combined. If FALSE, BGN thresholds are calculated separately for each recording. Defaults to \code{TRUE}}
+
+\item{saveNoise}{whether the noise.matrix objects generated internally should also be included in the output. Defaults to \code{TRUE}}
 
 \item{backup}{directory to save the backup. Defaults to \code{NULL}}
 }
@@ -69,7 +72,7 @@ where \eqn{\theta} is a user-defined threshold applied uniformly to both \code{B
 
 If \code{backup} is set to a valid directory, a file named \code{"SATBACKUP.rds"} is automatically saved after every batch of five processed files. This file stores the current processing state and allows interrupted runs (e.g., due to manual termination, session crashes, or system shutdowns) to be resumed using \code{\link[=satBackup]{satBackup()}}.
 
-To resume processing, pass the saved file (e.g., \code{"path/SATBACKUP.rds"}) to \code{\link[=satBackup]{satBackup()}}. Once a backup has been created, all original arguments and file paths must remain unchanged, unless they are explicitly modified within the saved \code{.RData} object.
+To resume processing, pass the saved file (e.g., \code{"path/SATBACKUP.rds"}) to \code{\link[=satBackup]{satBackup()}}. Once a backup has been created, all original arguments and file paths must remain unchanged, unless they are explicitly modified within the saved \code{.rds} object.
 }
 \examples{
 \donttest{

@@ -36,7 +36,13 @@ importFrom(methods,
   new,
   slot
 )
-importFrom(nortest,ad.test)
+importFrom(nortest,
+  ad.test,
+  cvm.test,
+  lillie.test,
+  pearson.test,
+  sf.test
+)
 importFrom(stats,
   IQR,
   mvfft,

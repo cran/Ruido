@@ -19,6 +19,7 @@ soundMat(
   powthr = c(5, 20, 1),
   bgnthr = c(0.5, 0.9, 0.05),
   beta = TRUE,
+  saveNoise = FALSE,
   backup = NULL
 )
 }
@@ -41,7 +42,7 @@ soundMat(
 
 \item{overlap}{overlap between the spectrogram windows. Defaults to \code{wl/2} (half the window length)}
 
-\item{histbreaks}{breaks used to calculate Background Noise. Available breaks are: \code{"FD"}, \verb{"Sturges}", \code{"scott"} and \code{100}. Defaults to \code{"FD"}.
+\item{histbreaks}{breaks used to calculate Background Noise. Available breaks are: \code{"FD"}, \code{"Sturges"}, \code{"scott"} and \code{100}. Defaults to \code{"FD"}.
 \if{html}{\out{<br>}}Can also be set to any numerical value to limit or increase the amount of breaks.}
 
 \item{DCfix}{if the DC offset should be removed before the metrics are calculated. Defaults to \code{TRUE}}
@@ -53,6 +54,8 @@ soundMat(
 \if{html}{\out{<br>}} Defaults to \code{c(0.5, 0.9, 0.05)}, which evaluates thresholds from 50\% to 90\% in increments of 5\%}
 
 \item{beta}{how BGN thresholds are calculated. If \code{TRUE}, BGN thresholds are calculated using all recordings combined. If FALSE, BGN thresholds are calculated separately for each recording. Defaults to \code{TRUE}}
+
+\item{saveNoise}{whether the noise.matrix objects generated internally should also be included in the output. Defaults to \code{TRUE}}
 
 \item{backup}{path to save the backup. Defaults to \code{NULL}}
 }

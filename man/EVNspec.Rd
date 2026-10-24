@@ -37,19 +37,19 @@ EVNspec(
 
 \item{overlap}{overlap between the spectrogram windows. Defaults to \code{wl/2} (half the window length)}
 
-\item{histbreaks}{breaks used to calculate Background Noise. Available breaks are: \code{"FD"}, \verb{"Sturges}", \code{"scott"} and \code{100}. Defaults to \code{"FD"}.
+\item{histbreaks}{breaks used to calculate Background Noise. Available breaks are: \code{"FD"}, \code{"Sturges"}, \code{"scott"} and \code{100}. Defaults to \code{"FD"}.
 \if{html}{\out{<br>}}Can also be set to any numerical value to limit or increase the amount of breaks.}
 
 \item{DCfix}{if the DC offset should be removed before the metrics are calculated. Defaults to \code{TRUE}}
 }
 \value{
-This function returns a \link[=noise.matrix-class]{noise.matrix} object containing the number of acoustic events detected in each frequency bin.
+This function returns a \link[=noise.matrix-class]{noise.matrix} object containing the number of acoustic events per second in each frequency bin.
 }
 \description{
-Calculate the number of acoustic events per minute in each frequency bin of a single audio using the methodology described by Towsey (2017).
+Calculate the number of acoustic events per second in each frequency bin of a single audio using the methodology described by Towsey (2017).
 }
 \details{
-Spectral Acoustic Events (EVNsp) quantifies the number of acoustic events detected per minute within each frequency bin. An acoustic event is defined as an upward crossing of a 3-dB threshold above the estimated background noise level.
+Spectral Acoustic Events (EVNsp) quantifies the number of acoustic events per second within each frequency bin. An acoustic event is defined as an upward crossing of a 3-dB threshold above the estimated background noise level.
 
 The spectrogram is first converted to decibels and the spectral Background Noise (BGN) is calculated independently for each frequency bin and time bin. The resulting background level is then subtracted from the corresponding frequency bin of the spectrogram to produce a noise-reduced spectrogram:
 
@@ -61,9 +61,9 @@ An acoustic event is counted whenever the noise-reduced intensity crosses the 3-
 
 \deqn{EVN_{f} = \sum_t I(D_{f,t-1} < 3 ;\mathrm{dB} ;\mathrm{and}; D_{f,t} \geq 3 ;\mathrm{dB})}
 
-where \eqn{I} is an indicator function. Thus, consecutive spectral frames remaining above the threshold are considered part of the same event and are not counted repeatedly.
+where \eqn{I} is an indicator function. Thus, consecutive spectral frames remaining above the threshold are considered part of the same event and are not counted repeatedly. Values are divided by the bin size in seconds.
 
-Event counts are calculated independently for each frequency bin. The resulting values represent the number of detected acoustic events per time bin and are expressed as events per minute.
+Event counts are calculated independently for each frequency bin. The resulting values represent the number of detected acoustic events per time bin and are expressed as events per second.
 }
 \examples{
 \donttest{

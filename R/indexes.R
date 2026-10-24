@@ -185,7 +185,7 @@ ACIspec = function(soundfile,
 #' @param wl window length of the spectrogram. Defaults to `512`
 #' @param window window used to smooth the spectrogram. Switch to `hanning(wl)` to use hanning instead. Defaults to `hamming(wl)`
 #' @param overlap overlap between the spectrogram windows. Defaults to `wl/2` (half the window length)
-#' @param histbreaks breaks used to calculate Background Noise. Available breaks are: `"FD"`, `"Sturges`", `"scott"` and `100`. Defaults to `"FD"`.
+#' @param histbreaks breaks used to calculate Background Noise. Available breaks are: `"FD"`, `"Sturges"`, `"scott"` and `100`. Defaults to `"FD"`.
 #' <br>Can also be set to any numerical value to limit or increase the amount of breaks.
 #' @param DCfix if the DC offset should be removed before the metrics are calculated. Defaults to `TRUE`
 #' @param powthr single numeric value to calculate the activity matrix for soundscape power (in dB). Defaults to `10`
@@ -299,21 +299,30 @@ activity = function(soundfile,
 
   nBins = length(BGNPOW@timeBins)
 
-  if (BGNPOW@channel == "stereo") {
-    BGN = cbind(BGNPOW@values$left$BGN, BGNPOW@values$right$BGN)
-  } else {
-    BGN = BGNPOW@values[[BGNPOW@channel]]$BGN
+  if (beta) {
+    if (BGNPOW@channel == "stereo") {
+      BGN = cbind(BGNPOW@values$left$BGN, BGNPOW@values$right$BGN)
+    } else {
+      BGN = BGNPOW@values[[BGNPOW@channel]]$BGN
+    }
   }
 
   BGNPOW@values = lapply(BGNPOW@values, function(ch) {
+    chBGN = as.matrix(ch$BGN)
+    chPOW = as.matrix(ch$POW)
+
     if (beta) {
       BGNQ = quantile(unlist(BGN), bgnthr)
-      result = (ch$BGN > BGNQ | ch$POW > powthr) * 1
+      result = (chBGN > BGNQ | chPOW > powthr) * 1
     } else {
-      result = sapply(1:nBins, function(t) {
-        (ch$BGN[, t] > quantile(ch$BGN[, t], bgnthr) |
-           ch$POW[, t] > powthr) * 1
-      })
+      result = (
+        ch$BGN > matrix(
+          matrixStats::colQuantiles(chBGN, probs = bgnthr),
+          nrow = nrow(chBGN),
+          ncol = ncol(chBGN),
+          byrow = TRUE
+        ) | chPOW > powthr
+      ) * 1
     }
     colnames(result) = paste0("ACT", 1:nBins)
     list("ACT" = as.data.frame(result))
@@ -340,7 +349,7 @@ activity = function(soundfile,
 #' @param dbRef reference value used to compute decibel values from the spectrogram. Defaults to `10`
 #' @param targetSampRate desired sample rate of the audios.  This argument is only used to down sample the audio. If `NULL`, then audio's sample rate remains the same. Defaults to `NULL`
 #' @param wl length of each waveform frame in samples. The waveform is divided into non-overlapping frames of this length before the envelope is calculated. Defaults to `512`
-#' @param histbreaks breaks used to calculate Background Noise. Available breaks are: `"FD"`, `"Sturges`", `"scott"` and `100`. Defaults to `"FD"`.
+#' @param histbreaks breaks used to calculate Background Noise. Available breaks are: `"FD"`, `"Sturges"`, `"scott"` and `100`. Defaults to `"FD"`.
 #' <br>Can also be set to any numerical value to limit or increase the amount of breaks.
 #' @param DCfix if the DC offset should be removed before the metrics are calculated. Defaults to `TRUE`
 #'
@@ -411,7 +420,7 @@ activity = function(soundfile,
 #' BGN = bgn(wave)
 #'
 #' # See the results
-#' bgn
+#' BGN
 bgn = function(soundfile,
                channel = "stereo",
                timeBin = 60,
@@ -523,12 +532,12 @@ bgn = function(soundfile,
 #' @param channel channel where the metric values will be extracted from. Available channels are: `"stereo"`, `"mono"`, `"left"` or `"right"`. Defaults to `"stereo"`
 #' @param timeBin size (in seconds) of the time bin. Set to `NULL` to use the entire audio as a single bin. Defaults to `60`
 #' @param dbThreshold minimum allowed value of dB for the spectrograms. Set to `NULL` to leave db values unrestricted Defaults to `-90`, as set by Towsey 2017
-#' @param dbRef coefficient used to convert spectrogram amplitude values to decibels. Defaults to `10`
+#' @param dbRef reference value used to convert spectrogram amplitude values to decibels. Defaults to `10`
 #' @param targetSampRate desired sample rate of the audios.  This argument is only used to down sample the audio. If `NULL`, then audio's sample rate remains the same. Defaults to `NULL`
 #' @param wl window length of the spectrogram. Defaults to `512`
 #' @param window window used to smooth the spectrogram. Switch to `hanning(wl)` to use hanning instead. Defaults to `hamming(wl)`
 #' @param overlap overlap between the spectrogram windows. Defaults to `wl/2` (half the window length)
-#' @param histbreaks breaks used to calculate Background Noise. Available breaks are: `"FD"`, `"Sturges`", `"scott"` and `100`. Defaults to `"FD"`.
+#' @param histbreaks breaks used to calculate Background Noise. Available breaks are: `"FD"`, `"Sturges"`, `"scott"` and `100`. Defaults to `"FD"`.
 #' <br>Can also be set to any numerical value to limit or increase the amount of breaks.
 #' @param DCfix if the DC offset should be removed before the metrics are calculated. Defaults to `TRUE`
 #'
@@ -619,22 +628,22 @@ bgn = function(soundfile,
 #' download.file(url, destfile = recDir, mode = "wb")
 #'
 #' # Running the bgNoise function with all the default arguments
-#' bgn = bgNoise(recDir)
+#' BGN = bgNoise(recDir)
 #'
 #' # Here's the result
-#' bgn
+#' BGN
 #'
 #' # Plot background noise and soundscape power values
-#' plot(bgn)
+#' plot(BGN)
 #'
 #' # Plot the two indices against each other
-#' plot(bgn@values$left$BGN$BGN1, bgn@values$left$POW$POW1,
+#' plot(BGN@values$left$BGN$BGN1, BGN@values$left$POW$POW1,
 #'      xlab = "BGN (dB)", ylab = "POW (dB)", pch = 16)
 #'
 #' # Now lets test and plot their correlation
-#' BGNPOWlm = lm(bgn@values$left$BGN$BGN1~bgn@values$left$POW$POW1)
+#' BGNPOWlm = lm(BGN@values$left$BGN$BGN1~BGN@values$left$POW$POW1)
 #' summary(BGNPOWlm)
-#' abline(lm(bgn@values$left$BGN$BGN1~bgn@values$left$POW$POW1), col = "red")
+#' abline(lm(BGN@values$left$BGN$BGN1~BGN@values$left$POW$POW1), col = "red")
 #'}
 bgNoise = function(soundfile,
                    channel = "stereo",
@@ -871,7 +880,7 @@ ENTspec = function(soundfile,
 
 #' @title Spectral Acoustic Event Index
 #'
-#' @description Calculate the number of acoustic events per minute in each frequency bin of a single audio using the methodology described by Towsey (2017).
+#' @description Calculate the number of acoustic events per second in each frequency bin of a single audio using the methodology described by Towsey (2017).
 #'
 #' @param soundfile wav package numeric matrix, tuneR package Wave object or path to a `.wav` file
 #' @param channel channel where the metric values will be extracted from. Available channels are: `"stereo"`, `"mono"`, `"left"` or `"right"`. Defaults to `"stereo"`
@@ -882,14 +891,14 @@ ENTspec = function(soundfile,
 #' @param wl window length of the spectrogram. Defaults to `512`
 #' @param window window used to smooth the spectrogram. Switch to `hanning(wl)` to use hanning instead. Defaults to `hamming(wl)`
 #' @param overlap overlap between the spectrogram windows. Defaults to `wl/2` (half the window length)
-#' @param histbreaks breaks used to calculate Background Noise. Available breaks are: `"FD"`, `"Sturges`", `"scott"` and `100`. Defaults to `"FD"`.
+#' @param histbreaks breaks used to calculate Background Noise. Available breaks are: `"FD"`, `"Sturges"`, `"scott"` and `100`. Defaults to `"FD"`.
 #' <br>Can also be set to any numerical value to limit or increase the amount of breaks.
 #' @param DCfix if the DC offset should be removed before the metrics are calculated. Defaults to `TRUE`
 #'
-#' @returns This function returns a [noise.matrix-class] object containing the number of acoustic events detected in each frequency bin.
+#' @returns This function returns a [noise.matrix-class] object containing the number of acoustic events per second in each frequency bin.
 #'
 #' @details
-#' Spectral Acoustic Events (EVNsp) quantifies the number of acoustic events detected per minute within each frequency bin. An acoustic event is defined as an upward crossing of a 3-dB threshold above the estimated background noise level.
+#' Spectral Acoustic Events (EVNsp) quantifies the number of acoustic events per second within each frequency bin. An acoustic event is defined as an upward crossing of a 3-dB threshold above the estimated background noise level.
 #'
 #' The spectrogram is first converted to decibels and the spectral Background Noise (BGN) is calculated independently for each frequency bin and time bin. The resulting background level is then subtracted from the corresponding frequency bin of the spectrogram to produce a noise-reduced spectrogram:
 #'
@@ -901,9 +910,9 @@ ENTspec = function(soundfile,
 #'
 #' \deqn{EVN_{f} = \sum_t I(D_{f,t-1} < 3 ;\mathrm{dB} ;\mathrm{and}; D_{f,t} \geq 3 ;\mathrm{dB})}
 #'
-#' where \eqn{I} is an indicator function. Thus, consecutive spectral frames remaining above the threshold are considered part of the same event and are not counted repeatedly.
+#' where \eqn{I} is an indicator function. Thus, consecutive spectral frames remaining above the threshold are considered part of the same event and are not counted repeatedly. Values are divided by the bin size in seconds.
 #'
-#' Event counts are calculated independently for each frequency bin. The resulting values represent the number of detected acoustic events per time bin and are expressed as events per minute.
+#' Event counts are calculated independently for each frequency bin. The resulting values represent the number of detected acoustic events per time bin and are expressed as events per second.
 #'
 #' @seealso [bgNoise()] to calculate spectral Background Noise and Soundscape Power, [bgn()] to calculate summarized Background Noise and Soundscape Power, and [ACIspec()] to calculate the Acoustic Complexity Index from a single audio file.
 #'
@@ -1037,7 +1046,7 @@ EVNspec = function(soundfile,
 #' @param wl window length of the spectrogram. Defaults to `512`.
 #' @param window window used to smooth the spectrogram. Defaults to `hamming(wl)`. Switch to `hanning(wl)` if to use hanning instead.
 #' @param overlap overlap between the spectrogram windows. Defaults to `wl/2` (half the window length)
-#' @param histbreaks breaks used to calculate Background Noise. Available breaks are: `"FD"`, `"Sturges`", `"scott"` and `100`. Defaults to `"FD"`.
+#' @param histbreaks breaks used to calculate Background Noise. Available breaks are: `"FD"`, `"Sturges"`, `"scott"` and `100`. Defaults to `"FD"`.
 #' <br>Can also be set to any numerical value to limit or increase the amount of breaks.
 #' @param DCfix if the DC offset should be removed before the metrics are calculated. Defaults to `TRUE`
 #' @param powthr a single value to evaluate the activity matrix for Soundscape Power (in %dB). Defaults to `10`.
@@ -1204,7 +1213,7 @@ singleSat = function(soundfile,
     beta = beta
   )
 
-  halfWl = round(wl / 2)
+  halfWl = as.integer(wl / 2)
 
   BGNPOW = if (is(soundfile, "noise.matrix")) {
     soundfile
@@ -1220,7 +1229,7 @@ singleSat = function(soundfile,
       dbRef = dbRef,
       wl = wl,
       histbreaks = histbreaks,
-      DCfix
+      DCfix = DCfix
     )
   }
 
@@ -1229,35 +1238,38 @@ singleSat = function(soundfile,
   if (length(BGNPOW@index) == 1) {
     if (BGNPOW@channel == "stereo") {
       names = paste0(rep(c("left", "right"), each = nBins), seq(nBins))
-      singSat = c(colMeans(BGNPOW@values$left$ACT),
-                  colMeans(BGNPOW@values$right$ACT))
+      singSat = c(matrixStats::colMeans2(as.matrix(BGNPOW@values$left$ACT)),
+                  matrixStats::colMeans2(as.matrix(BGNPOW@values$right$ACT)))
     } else {
       names = paste0(rep(BGNPOW@channel, nBins), seq(nBins))
-      singSat = colMeans(BGNPOW@values[[BGNPOW@channel]]$ACT)
+      singSat = matrixStats::colMeans2(as.matrix(BGNPOW@values[[BGNPOW@channel]]$ACT))
     }
 
   } else {
     if (BGNPOW@channel == "stereo") {
-      BGN = cbind(BGNPOW@values$left$BGN, BGNPOW@values$right$BGN)
-      POW = cbind(BGNPOW@values$left$POW, BGNPOW@values$right$POW)
+      BGN = as.matrix(cbind(BGNPOW@values$left$BGN, BGNPOW@values$right$BGN))
+      POW = as.matrix(cbind(BGNPOW@values$left$POW, BGNPOW@values$right$POW))
       names = paste0(rep(c("left", "right"), each = nBins), seq(nBins))
     } else {
-      BGN = BGNPOW@values[[BGNPOW@channel]]$BGN
-      POW = BGNPOW@values[[BGNPOW@channel]]$POW
+      BGN = as.matrix(BGNPOW@values[[BGNPOW@channel]]$BGN)
+      POW = as.matrix(BGNPOW@values[[BGNPOW@channel]]$POW)
       names = paste0(rep(BGNPOW@channel, nBins), seq(nBins))
     }
 
     if (beta) {
       BGNQ = quantile(unlist(BGN), bgnthr)
 
-      singSat = colMeans(BGN > BGNQ | POW > powthr)
+      singSat = matrixStats::colMeans2(BGN > BGNQ | POW > powthr)
 
     } else {
-      singSat = sapply(1:ncol(BGN), function(t) {
-        sum(BGN[, t] > quantile(BGN[, t], bgnthr) |
-              POW[, t] > powthr) / halfWl
-
-      })
+      singSat = matrixStats::colSums2((
+        BGN > matrix(
+          matrixStats::colQuantiles(BGN, probs = bgnthr),
+          nrow = nrow(BGN),
+          ncol = ncol(BGN),
+          byrow = TRUE
+        )
+      ) | POW > powthr) / halfWl
 
     }
   }

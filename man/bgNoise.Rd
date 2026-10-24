@@ -27,7 +27,7 @@ bgNoise(
 
 \item{dbThreshold}{minimum allowed value of dB for the spectrograms. Set to \code{NULL} to leave db values unrestricted Defaults to \code{-90}, as set by Towsey 2017}
 
-\item{dbRef}{coefficient used to convert spectrogram amplitude values to decibels. Defaults to \code{10}}
+\item{dbRef}{reference value used to convert spectrogram amplitude values to decibels. Defaults to \code{10}}
 
 \item{targetSampRate}{desired sample rate of the audios.  This argument is only used to down sample the audio. If \code{NULL}, then audio's sample rate remains the same. Defaults to \code{NULL}}
 
@@ -37,7 +37,7 @@ bgNoise(
 
 \item{overlap}{overlap between the spectrogram windows. Defaults to \code{wl/2} (half the window length)}
 
-\item{histbreaks}{breaks used to calculate Background Noise. Available breaks are: \code{"FD"}, \verb{"Sturges}", \code{"scott"} and \code{100}. Defaults to \code{"FD"}.
+\item{histbreaks}{breaks used to calculate Background Noise. Available breaks are: \code{"FD"}, \code{"Sturges"}, \code{"scott"} and \code{100}. Defaults to \code{"FD"}.
 \if{html}{\out{<br>}}Can also be set to any numerical value to limit or increase the amount of breaks.}
 
 \item{DCfix}{if the DC offset should be removed before the metrics are calculated. Defaults to \code{TRUE}}
@@ -124,22 +124,22 @@ url = paste0("https://zenodo.org/records/17575795/files/",
 download.file(url, destfile = recDir, mode = "wb")
 
 # Running the bgNoise function with all the default arguments
-bgn = bgNoise(recDir)
+BGN = bgNoise(recDir)
 
 # Here's the result
-bgn
+BGN
 
 # Plot background noise and soundscape power values
-plot(bgn)
+plot(BGN)
 
 # Plot the two indices against each other
-plot(bgn@values$left$BGN$BGN1, bgn@values$left$POW$POW1,
+plot(BGN@values$left$BGN$BGN1, BGN@values$left$POW$POW1,
      xlab = "BGN (dB)", ylab = "POW (dB)", pch = 16)
 
 # Now lets test and plot their correlation
-BGNPOWlm = lm(bgn@values$left$BGN$BGN1~bgn@values$left$POW$POW1)
+BGNPOWlm = lm(BGN@values$left$BGN$BGN1~BGN@values$left$POW$POW1)
 summary(BGNPOWlm)
-abline(lm(bgn@values$left$BGN$BGN1~bgn@values$left$POW$POW1), col = "red")
+abline(lm(BGN@values$left$BGN$BGN1~BGN@values$left$POW$POW1), col = "red")
 }
 }
 \references{

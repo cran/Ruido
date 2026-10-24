@@ -20,6 +20,7 @@ soundSat(
   bgnthr = c(0.5, 0.9, 0.05),
   normality = "auto",
   beta = TRUE,
+  saveNoise = FALSE,
   backup = NULL
 )
 }
@@ -42,7 +43,7 @@ soundSat(
 
 \item{overlap}{overlap between the spectrogram windows. Defaults to \code{wl/2} (half the window length)}
 
-\item{histbreaks}{breaks used to calculate Background Noise. Available breaks are: \code{"FD"}, \verb{"Sturges}", \code{"scott"} and \code{100}. Defaults to \code{"FD"}.
+\item{histbreaks}{breaks used to calculate Background Noise. Available breaks are: \code{"FD"}, \code{"Sturges"}, \code{"scott"} and \code{100}. Defaults to \code{"FD"}.
 \if{html}{\out{<br>}}Can also be set to any numerical value to limit or increase the amount of breaks.}
 
 \item{DCfix}{if the DC offset should be removed before the metrics are calculated. Defaults to \code{TRUE}}
@@ -57,6 +58,8 @@ soundSat(
 \if{html}{\out{<br>}}\code{"ks.test"} is not available. Check details for more information.}
 
 \item{beta}{how BGN thresholds are calculated. If \code{TRUE}, BGN thresholds are calculated using all recordings combined. If FALSE, BGN thresholds are calculated separately for each recording. Defaults to \code{TRUE}}
+
+\item{saveNoise}{whether the noise.matrix objects generated internally should also be included in the output. Defaults to \code{TRUE}}
 
 \item{backup}{path to save the backup. Defaults to \code{NULL}}
 }
@@ -83,9 +86,9 @@ where \eqn{N} is the total number of frequency bins. Higher values of \code{SAT}
 
 After computing \eqn{S_m}, the function evaluates all tested threshold values and selects the one that yields the most normally distributed set of saturation values across time bins. Normality is assessed to identify a threshold that best stabilizes the distribution of \code{SAT}.
 
-If \code{backup} is set to a valid directory, a file named \code{"SATBACKUP.RData"} is automatically saved after every batch of five processed files. This file stores the current processing state and allows interrupted runs (e.g., due to manual termination, session crashes, or system shutdowns) to be resumed using \code{\link[=satBackup]{satBackup()}}.
+If \code{backup} is set to a valid directory, a file named \code{"SATBACKUP.rds"} is automatically saved after every batch of five processed files. This file stores the current processing state and allows interrupted runs (e.g., due to manual termination, session crashes, or system shutdowns) to be resumed using \code{\link[=satBackup]{satBackup()}}.
 
-To resume processing, pass the saved file (e.g., \code{"path/SATBACKUP.RData"}) to \code{\link[=satBackup]{satBackup()}}. Once a backup has been created, all original arguments and file paths must remain unchanged, unless they are explicitly modified within the saved \code{.RData} object.
+To resume processing, pass the saved file (e.g., \code{"path/SATBACKUP.rds"}) to \code{\link[=satBackup]{satBackup()}}. Once a backup has been created, all original arguments and file paths must remain unchanged, unless they are explicitly modified within the saved \code{.rds} object.
 
 For the \code{normality} argument, each test only works within a range of sample sizes (3-5000 for \verb{"shapiro.test}", 5-5000 for \code{"sf.test"}, 5 or more for \code{"lillie.test"}, 8 or more for \code{"ad.test"} and \code{"cvm.test"}, 2 or more for \code{"pearson.test"}). If the chosen test does not fit the number of values, a warning is issued and \code{"shapiro.test"} is used (or \code{"ad.test"} if there are more than 5000 values). With \code{"auto"}, \code{"shapiro.test"} is used for up to 5000 values and \code{"ad.test"} for more.
 }

@@ -7,14 +7,14 @@
 satBackup(backup)
 }
 \arguments{
-\item{backup}{path to the \code{.RData} file create by the backup of soundSat, soundMat or multActivity}
+\item{backup}{path to the \code{.rds} file create by the backup of soundSat, soundMat or multActivity}
 }
 \value{
 This functions returns the same output of \code{\link[=soundSat]{soundSat()}}, \code{\link[=soundMat]{soundMat()}} or \code{\link[=multActivity]{multActivity()}}
 }
 \description{
 This function offers a way to continue an unfinished process of the \code{\link[=soundSat]{soundSat()}}, \code{\link[=soundMat]{soundMat()}} or \code{\link[=multActivity]{multActivity()}} functions through a backup file.
-Arguments can't be inputted nor changed since the function will automatically load them from the \code{.RData} file. However you may manually change them by editing the file (not recommended).
+Arguments can't be inputted nor changed since the function will automatically load them from the \code{.rds} file. However you may manually change them by editing the file (not recommended).
 }
 \examples{
 \dontrun{

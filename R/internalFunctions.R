@@ -449,6 +449,19 @@ argHandler = function(FUN, ...) {
 
   }
 
+  #### saveNoise ----
+  if ("saveNoise" %in% names(args)) {
+    if (!is.logical(args$saveNoise) || length(args$saveNoise) != 1) {
+      stop(paste0(
+        'saveNoise = ',
+        capture.output(dput(args$saveNoise)),
+        "\nsaveNoise must be either TRUE or FALSE"
+      ),
+      call. = FALSE)
+    }
+
+  }
+
   #### backup ----
   if ("backup" %in% names(args)) {
     if (!is.null(args$backup) && !dir.exists(args$backup))

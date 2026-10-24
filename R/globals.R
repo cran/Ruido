@@ -12,6 +12,8 @@ utils::globalVariables(c(
   'dbThreshold',
   'dbRef',
   'histbreaks',
+  'beta',
+  'saveNoise',
   'DCfix',
   'normality',
   'type',

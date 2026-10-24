@@ -31,7 +31,7 @@ bgn(
 
 \item{wl}{length of each waveform frame in samples. The waveform is divided into non-overlapping frames of this length before the envelope is calculated. Defaults to \code{512}}
 
-\item{histbreaks}{breaks used to calculate Background Noise. Available breaks are: \code{"FD"}, \verb{"Sturges}", \code{"scott"} and \code{100}. Defaults to \code{"FD"}.
+\item{histbreaks}{breaks used to calculate Background Noise. Available breaks are: \code{"FD"}, \code{"Sturges"}, \code{"scott"} and \code{100}. Defaults to \code{"FD"}.
 \if{html}{\out{<br>}}Can also be set to any numerical value to limit or increase the amount of breaks.}
 
 \item{DCfix}{if the DC offset should be removed before the metrics are calculated. Defaults to \code{TRUE}}
@@ -96,7 +96,7 @@ wave
 BGN = bgn(wave)
 
 # See the results
-bgn
+BGN
 }
 \references{
 Towsey, M. W. (2017). The calculation of acoustic indices derived from long-duration recordings of the natural environment. In eprints.qut.edu.au. https://eprints.qut.edu.au/110634/
