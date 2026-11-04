@@ -48,7 +48,7 @@
 #'
 #' For the `normality` argument, each test only works within a range of sample sizes (3-5000 for `"shapiro.test`", 5-5000 for `"sf.test"`, 5 or more for `"lillie.test"`, 8 or more for `"ad.test"` and `"cvm.test"`, 2 or more for `"pearson.test"`). If the chosen test does not fit the number of values, a warning is issued and `"shapiro.test"` is used (or `"ad.test"` if there are more than 5000 values). With `"auto"`, `"shapiro.test"` is used for up to 5000 values and `"ad.test"` for more.
 #'
-#' @seealso [soundMat()] to get saturation for ALL thresholds and [multActivity()] to get only activity values. Also, check [satBackup()] if you are working with bigger datasets.
+#' @seealso [soundMAT()] to get saturation for ALL thresholds and [soundACT()] to get only activity values. Also, check [satBackup()] if you are working with bigger datasets.
 #'
 #'@references Burivalova, Z., Towsey, M., Boucher, T., Truskinger, A., Apelis, C., Roe, P., & Game, E. T. (2018). Using soundscapes to detect variable degrees of human influence on tropical forests in Papua New Guinea. Conservation Biology, 32(1), 205-215. https://doi.org/10.1111/cobi.12968
 #'
@@ -81,7 +81,7 @@
 #' }
 #'
 #' ### Running the function
-#' sat = soundSat(dir)
+#' sat = soundSAT(dir)
 #'
 #' ### Preparing the plot
 #' timeSplit = strsplit(sat$values$AUDIO, "_")
@@ -108,7 +108,7 @@
 #'
 #' unlink(dir, recursive = TRUE)
 #' }
-soundSat = function(soundpath,
+soundSAT = function(soundpath,
                     channel = "stereo",
                     timeBin = 60,
                     dbThreshold = -90,
@@ -126,7 +126,7 @@ soundSat = function(soundpath,
                     saveNoise = FALSE,
                     backup = NULL) {
   argHandler(
-    FUN = "soundSat",
+    FUN = "soundSAT",
     soundpath = soundpath,
     channel = channel,
     timeBin = timeBin,
@@ -192,7 +192,7 @@ soundSat = function(soundpath,
       normality = normality,
       beta = beta,
       saveNoise = saveNoise,
-      type = "soundSat",
+      type = "soundSAT",
       od = soundpath,
       nFiles = length(soundfiles),
       concluded = 0
@@ -210,7 +210,7 @@ soundSat = function(soundpath,
     sPath = soundfiles[[soundfile]]
 
     result = tryCatch(
-      bgNoise..(
+      ..BGNspec(
         sPath,
         timeBin = timeBin,
         targetSampRate = targetSampRate,
@@ -467,9 +467,9 @@ soundSat = function(soundpath,
 #'
 #' @returns A list containing three objects. The first (info) contains the following variables from every audio file: PATH, AUDIO, CHANNEL, DURATION, BIN, SAMPRATE. The second (values) contains saturation values from all possible threshold combinations. The third (errors) contains the error messages and the paths to the files that returned an error during processing.
 #'
-#' @details Check [soundSat()] to see how the indices are calculated.
+#' @details Check [soundSAT()] to see how the indices are calculated.
 #'
-#' @seealso [soundSat()] to get only the threshold with the most normal distribution and [multActivity()] to generate only activity matrices. Also, check [satBackup()] if you are working with larger datasets and want some safety.
+#' @seealso [soundSAT()] to get only the threshold with the most normal distribution and [soundACT()] to generate only activity matrices. Also, check [satBackup()] if you are working with larger datasets and want some safety.
 #'
 #'@references Burivalova, Z., Towsey, M., Boucher, T., Truskinger, A., Apelis, C., Roe, P., & Game, E. T. (2018). Using soundscapes to detect variable degrees of human influence on tropical forests in Papua New Guinea. Conservation Biology, 32(1), 205-215. https://doi.org/10.1111/cobi.12968
 #'
@@ -500,7 +500,7 @@ soundSat = function(soundpath,
 #' }
 #'
 #' ### Running the function
-#' sat = soundMat(dir)
+#' sat = soundMAT(dir)
 #'
 #' ### Plotting results
 #' sides = sat$info$CHANNEL
@@ -567,7 +567,7 @@ soundSat = function(soundpath,
 #' unlink(dir, recursive = TRUE)
 #' par(oldpar)
 #' }
-soundMat = function(soundpath,
+soundMAT = function(soundpath,
                     channel = "stereo",
                     timeBin = 60,
                     dbThreshold = -90,
@@ -584,7 +584,7 @@ soundMat = function(soundpath,
                     saveNoise = FALSE,
                     backup = NULL) {
   argHandler(
-    FUN = "soundMat",
+    FUN = "soundMAT",
     soundpath = soundpath,
     channel = channel,
     timeBin = timeBin,
@@ -648,7 +648,7 @@ soundMat = function(soundpath,
       bgnthr = bgnthr,
       beta = beta,
       saveNoise = saveNoise,
-      type = "soundMat",
+      type = "soundMAT",
       od = soundpath,
       nFiles = length(soundfiles),
       concluded = 0
@@ -666,7 +666,7 @@ soundMat = function(soundpath,
     sPath = soundfiles[[soundfile]]
 
     result = tryCatch(
-      bgNoise..(
+      ..BGNspec(
         sPath,
         timeBin = timeBin,
         targetSampRate = targetSampRate,
@@ -837,14 +837,14 @@ soundMat = function(soundpath,
 
 #' @title Backup for Ruido's functions
 #'
-#' @param backup path to the `.rds` file create by the backup of soundSat, soundMat or multActivity
+#' @param backup path to the `.rds` file create by the backup of soundSAT, soundMAT or soundACT
 #'
 #' @description
-#' This function offers a way to continue an unfinished process of the [soundSat()], [soundMat()] or [multActivity()] functions through a backup file.
+#' This function offers a way to continue an unfinished process of the [soundSAT()], [soundMAT()] or [soundACT()] functions through a backup file.
 #' Arguments can't be inputted nor changed since the function will automatically load them from the `.rds` file. However you may manually change them by editing the file (not recommended).
 #'
 #' @returns
-#' This functions returns the same output of [soundSat()], [soundMat()] or [multActivity()]
+#' This functions returns the same output of [soundSAT()], [soundMAT()] or [soundACT()]
 #'
 #' @export
 #' @importFrom stats window
@@ -867,7 +867,7 @@ soundMat = function(soundpath,
 #'   download.file(url, destfile = paste(dir, rec, sep = "/"), mode = "wb")
 #' }
 #'
-#' sat = soundSat(dir, backup = dir)
+#' sat = soundSAT(dir, backup = dir)
 #'
 #' # Now pretend the process was interrupted (manually/your R crashed/your computer turned off)
 #' # We get the backup file
@@ -891,7 +891,7 @@ satBackup = function(backup) {
   soundfiles = list.files(od, full.names = TRUE, recursive = TRUE)
   soundfiles = soundfiles[tolower(tools::file_ext(soundfiles)) == "wav"]
 
-  if (type != "multActivity") {
+  if (type != "soundACT") {
     powthreshold = seq(powthr[1], powthr[2], powthr[3])
     names(powthreshold) = powthreshold
     bgnthreshold = seq(bgnthr[1], bgnthr[2], bgnthr[3])
@@ -914,7 +914,7 @@ satBackup = function(backup) {
       sPath = soundfiles[[soundfile]]
 
       result = tryCatch(
-        bgNoise..(
+        ..BGNspec(
           sPath,
           timeBin = timeBin,
           targetSampRate = targetSampRate,
@@ -1028,7 +1028,7 @@ satBackup = function(backup) {
   dimBGN = dim(BGN)
 
   if (beta) {
-    if (type != "multActivity") {
+    if (type != "soundACT") {
       BGNQ = quantile(unlist(BGN), probs = seq(bgnthr[1], bgnthr[2], bgnthr[3])) |>
         setNames(bgnthreshold)
 
@@ -1052,7 +1052,7 @@ satBackup = function(backup) {
     }
 
   } else {
-    if (type != "multActivity") {
+    if (type != "soundACT") {
       SATmat = mapply(
         function(bgnthresh, powthresh) {
           matrixStats::colSums2((
@@ -1080,12 +1080,12 @@ satBackup = function(backup) {
 
   }
 
-  if (type != "multActivity") {
+  if (type != "soundACT") {
     colnames(SATmat) = combinations
 
   }
 
-  if (type == "soundSat") {
+  if (type == "soundSAT") {
     normality = normHandler(normality, SIZE = nrow(SATmat))
 
     normal = apply(SATmat, 2, function(Q) {
@@ -1158,7 +1158,7 @@ satBackup = function(backup) {
     export[["values"]] = SATinfo
     export[["errors"]] = ERRORS
 
-  } else if (type == "soundMat") {
+  } else if (type == "soundMAT") {
     export = list(info = data.frame(),
                   values = matrix(),
                   errors = list())
@@ -1169,7 +1169,7 @@ satBackup = function(backup) {
 
     return(export)
 
-  } else if (type == "multActivity") {
+  } else if (type == "soundACT") {
     export = list(
       powthresh = numeric(0),
       bgnthresh = numeric(0),
@@ -1230,7 +1230,7 @@ satBackup = function(backup) {
 #'
 #' To resume processing, pass the saved file (e.g., `"path/SATBACKUP.rds"`) to [satBackup()]. Once a backup has been created, all original arguments and file paths must remain unchanged, unless they are explicitly modified within the saved `.rds` object.
 #'
-#' @seealso [activity()] to run this on a single audio file, [soundSat()] and [soundMat()] to get saturation values instead. Also, check [satBackup()] if you are working with larger datasets and want some safety.
+#' @seealso [ACTspec()] to run this on a single audio file, [soundSAT()] and [soundMAT()] to get saturation values instead. Also, check [satBackup()] if you are working with larger datasets and want some safety.
 #'
 #'@references Burivalova, Z., Towsey, M., Boucher, T., Truskinger, A., Apelis, C., Roe, P., & Game, E. T. (2018). Using soundscapes to detect variable degrees of human influence on tropical forests in Papua New Guinea. Conservation Biology, 32(1), 205-215. https://doi.org/10.1111/cobi.12968
 #'
@@ -1280,7 +1280,7 @@ satBackup = function(backup) {
 #'   breaks = round(c(1, cumsum(rep(256 / 6, 6))))
 #'
 #'   ### Running the function
-#'   act = multActivity(dir)
+#'   act = soundACT(dir)
 #'
 #'   plotN = 1
 #'
@@ -1327,7 +1327,7 @@ satBackup = function(backup) {
 #'
 #'   }
 #' }
-multActivity = function(soundpath,
+soundACT = function(soundpath,
                         channel = "stereo",
                         timeBin = 60,
                         dbThreshold = -90,
@@ -1344,7 +1344,7 @@ multActivity = function(soundpath,
                         saveNoise = FALSE,
                         backup = NULL) {
   argHandler(
-    FUN = "multActivity",
+    FUN = "soundACT",
     soundpath = soundpath,
     channel = channel,
     timeBin = timeBin,
@@ -1386,7 +1386,7 @@ multActivity = function(soundpath,
       bgnthr = bgnthr,
       beta = beta,
       saveNoise = saveNoise,
-      type = "multActivity",
+      type = "soundACT",
       od = soundpath,
       nFiles = length(soundfiles),
       concluded = 0
@@ -1402,7 +1402,7 @@ multActivity = function(soundpath,
     sPath = soundfiles[[soundfile]]
 
     result = tryCatch(
-      bgNoise..(
+      ..BGNspec(
         sPath,
         timeBin = timeBin,
         targetSampRate = targetSampRate,

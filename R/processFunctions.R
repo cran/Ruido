@@ -46,10 +46,8 @@ processChannel.BGN = function(channelData,
       ))
     })
 
-    globalMax = do.call(max, tempHolder)
-
     BGNPOWdf = lapply(tempHolder, function(singleBin) {
-      singleBin = dbRef * log10(singleBin / globalMax)
+      singleBin = dbRef * log10(singleBin / max(singleBin))
 
       if (!is.null(dbThreshold)) {
         singleBin[singleBin < dbThreshold] = dbThreshold
@@ -292,10 +290,8 @@ processChannel.EVN = function(channelData,
       ))
     })
 
-    globalMax = do.call(max, tempHolder)
-
     EVNdf = lapply(tempHolder, function(singleBin) {
-      singleBin = dbRef * log10(singleBin / globalMax)
+      singleBin = dbRef * log10(singleBin / max(singleBin))
 
       if (!is.null(dbThreshold)) {
         singleBin[singleBin < dbThreshold] = dbThreshold

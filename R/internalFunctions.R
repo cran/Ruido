@@ -1,30 +1,16 @@
-# bgnoise alts ------------------------------------------------------------
-## bgNoise
-## This is a hidden version of the bgNoise function.
-## In this version, the check for the arguments is skipped and is handled
-## by a higher function.
+.importAudio = function(soundfile, channel, targetSampRate) {
 
-bgNoise. = function(soundfile,
-                    channel = "stereo",
-                    timeBin = 60,
-                    dbThreshold = -90,
-                    dbRef = 10,
-                    targetSampRate = NULL,
-                    wl = 512,
-                    window = hamming(wl),
-                    overlap = ceiling(length(window) / 2),
-                    histbreaks = "FD",
-                    DCfix = TRUE,
-                    noiseOBJ = new("noise.matrix.internal")) {
   audio = typeof(soundfile)
 
   if (audio == "character") {
+    path = soundfile
     if (tolower(tools::file_ext(soundfile)) == "wav") {
       soundfile = wav::read_wav(soundfile)
     } else {
       stop("The audio file must be in the WAV format.")
     }
   } else if (audio == "S4") {
+    path = "soundfile"
     tempSamp = soundfile@samp.rate
     if (soundfile@stereo) {
       soundfile = rbind(soundfile@left, soundfile@right)
@@ -53,10 +39,35 @@ bgNoise. = function(soundfile,
     attr(soundfile, "sample_rate") = targetSampRate
   }
 
+  attr(soundfile, "channel") = channel
+  attr(soundfile, "path") = path
+
+  return(soundfile)
+
+}
+
+### Called by: ACTspec and SAT
+.BGNspec = function(soundfile,
+                    channel = "stereo",
+                    timeBin = 60,
+                    dbThreshold = -90,
+                    dbRef = 10,
+                    targetSampRate = NULL,
+                    wl = 512,
+                    window = hamming(wl),
+                    overlap = ceiling(length(window) / 2),
+                    histbreaks = "FD",
+                    DCfix = TRUE,
+                    noiseOBJ = new("noise.matrix")) {
+
+  channelData = .importAudio(soundfile = soundfile,
+                             channel = channel,
+                             targetSampRate = targetSampRate)
+
   BGNexp = processChannel.BGN(
-    soundfile,
-    samp.rate = attr(soundfile, "sample_rate"),
-    channel = channel,
+    channelData = channelData,
+    samp.rate = attr(channelData, "sample_rate"),
+    channel = attr(channelData, "channel"),
     timeBin = timeBin,
     wl = wl,
     overlap = overlap,
@@ -68,16 +79,14 @@ bgNoise. = function(soundfile,
     noiseOBJ = noiseOBJ
   )
 
+  BGNexp@path = attr(channelData, "path")
+
   return(BGNexp)
 
 }
 
-## bgNoise..
-## This is another hidden version of the bgNoise function.
-## This version is used in functions that take a folder as input.
-## It skips checks and reads the audio files directly.
-
-bgNoise.. = function(soundfile,
+### Called by: soundSAT, soundMAT, soundACT and satBackup
+..BGNspec = function(soundfile,
                      channel = "stereo",
                      timeBin = 60,
                      dbThreshold = -90,
@@ -88,34 +97,35 @@ bgNoise.. = function(soundfile,
                      overlap = ceiling(length(window) / 2),
                      histbreaks = "FD",
                      DCfix = TRUE) {
+
   if (tolower(tools::file_ext(soundfile)) == "wav") {
-    soundfile = wav::read_wav(soundfile)
+    channelData = wav::read_wav(soundfile)
   } else {
     stop("The audio file must be in the WAV format.")
   }
 
-  savedAttr = attributes(soundfile)
+  savedAttr = attributes(channelData)
 
   if (channel == "mono" && savedAttr$dim[1] > 1) {
-    sampRate = attr(soundfile, "sample_rate")
-    soundfile = matrix((soundfile[1, ] + soundfile[2, ]) / 2, nrow = 1)
-    attr(soundfile, "sample_rate") = sampRate
-    savedAttr$dim = dim(soundfile)
+    sampRate = attr(channelData, "sample_rate")
+    channelData = matrix((channelData[1, ] + channelData[2, ]) / 2, nrow = 1)
+    attr(channelData, "sample_rate") = sampRate
+    savedAttr$dim = dim(channelData)
   }
-  if (channel == "stereo" && nrow(soundfile) == 1) {
+  if (channel == "stereo" && nrow(channelData) == 1) {
     message("Audio is not stereo, defaulting to left channel.")
     channel = "mono"
   }
   if (!is.null(targetSampRate)) {
-    audioLen = length(soundfile[1, ])
+    audioLen = length(channelData[1, ])
     keepIdx  = round(seq(1, audioLen, length = targetSampRate * audioLen / savedAttr$sample_rate))
-    soundfile = soundfile[1:savedAttr$dim[1], keepIdx, drop = FALSE]
-    attr(soundfile, "sample_rate") = targetSampRate
+    channelData = channelData[1:savedAttr$dim[1], keepIdx, drop = FALSE]
+    attr(channelData, "sample_rate") = targetSampRate
   }
 
   BGNexp = processChannel.BGN(
-    soundfile,
-    samp.rate = attr(soundfile, "sample_rate"),
+    channelData,
+    samp.rate = attr(channelData, "sample_rate"),
     channel = channel,
     timeBin = timeBin,
     wl = wl,
@@ -125,15 +135,21 @@ bgNoise.. = function(soundfile,
     window = window,
     histbreaks = histbreaks,
     DCfix = DCfix,
-    noiseOBJ = new("noise.matrix.internal")
+    noiseOBJ = new("noise.matrix")
   )
+
+  BGNexp@wl = if (BGNexp@channel == "stereo") {
+    nrow(BGNexp@values$left$BGN)
+  } else {
+    nrow(BGNexp@values[[channel]]$BGN)
+  }
+
+
+  BGNexp@path = soundfile
 
   return(BGNexp)
 
 }
-
-# argHandler --------------------------------------------------------------
-## Function to check if the inputted arguments are supported.
 
 argHandler = function(FUN, ...) {
   args = list(...)
@@ -298,7 +314,7 @@ argHandler = function(FUN, ...) {
 
   #### powthr ----
   if ("powthr" %in% names(args)) {
-    if (FUN %in% c("soundSat", "soundMat")) {
+    if (FUN %in% c("soundSAT", "soundMAT")) {
       if (!is.numeric(args$powthr))
         stop(paste0(
           'powthr = ',
@@ -368,7 +384,7 @@ argHandler = function(FUN, ...) {
 
   #### bgnthr ----
   if ("bgnthr" %in% names(args)) {
-    if (FUN %in% c("soundSat", "soundMat")) {
+    if (FUN %in% c("soundSAT", "soundMAT")) {
       if (!is.numeric(args$bgnthr))
         stop(paste0(
           'bgnthr = ',
@@ -479,9 +495,6 @@ argHandler = function(FUN, ...) {
 
 }
 
-# normHandler -------------------------------------------------------------
-## This function deals with the normality tests
-
 normHandler = function(normality, SIZE) {
   minN = c(
     shapiro.test = 3,
@@ -522,8 +535,6 @@ normHandler = function(normality, SIZE) {
   default
 }
 
-# .spect -----------------------------------------------------
-
 .spect = function(x, n, window, overlap) {
   winSize = length(window)
 
@@ -553,8 +564,6 @@ normHandler = function(normality, SIZE) {
   S[1:keepThese, , drop = FALSE]
 }
 
-# hBreaks ----------------------------------------------------------------
-# Function factory made to prevent checks for histbreaks every loop on processChannel.bgn
 hBreaks.MAT = function(histbreaks) {
   if (is.numeric(histbreaks)) {
     function(z) {
@@ -605,9 +614,6 @@ hBreaks = function(histbreaks) {
   }
 }
 
-# getSampleBins -----------------------------------------------------------
-## This is a helper function to dynamically transform seconds to samples
-
 getSampleBins = function(samples, samp.rate, binSize) {
   b = seq(1, samples, by = samp.rate * binSize)
   e = pmin(b + samp.rate * binSize - 1, samples)
@@ -617,7 +623,6 @@ getSampleBins = function(samples, samp.rate, binSize) {
 
 }
 
-# plotNOISE --------------------------------------------------------------
 #' Plot noise.matrix objects
 #'
 #' @param x an `noise.matrix` object
@@ -637,7 +642,7 @@ getSampleBins = function(samples, samp.rate, binSize) {
 #' @param annotate if bin information should be added to the plot. Defaults to `TRUE`
 #' @param ... further [graphical parameters] passed down to plot
 #'
-#' @details This is a method to quickly plot the results of [bgNoise]. This calls the helper function `plotBGN`, which is not meant to be used or seen by the user.
+#' @details This is a method to quickly plot the results of [BGNspec]. This calls the helper function `plotBGN`, which is not meant to be used or seen by the user.
 #'
 #' @importFrom grDevices xy.coords
 #' @importFrom graphics abline

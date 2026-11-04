@@ -33,15 +33,15 @@ ACIspec(
 \item{overlap}{overlap between the spectrogram windows. Defaults to \code{wl/2} (half the window length)}
 }
 \value{
-This function returns a \link[=noise.matrix-class]{noise.matrix} object.
+This function returns a \link[=noise.matrix-class]{noise.matrix} object containing \code{ACIsp} values.
 }
 \description{
 Calculate the Acoustic Complexity Index values of a single audio using the methodology proposed in Pieretti, et al. 2011
 }
 \details{
-The Acoustic Complexity Index (\code{ACI}) quantifies the average proportional change in spectral amplitude between adjacent time steps  across frequency bins. Because biological sounds, particularly bird vocalizations, often exhibit rapid and irregular amplitude fluctuations over time, \code{ACI} captures this temporal variability as a proxy for acoustic complexity.
+The Spectral Acoustic Complexity Index (\code{ACIsp}) quantifies the average proportional change in spectral amplitude between adjacent time steps  across frequency bins. Because biological sounds, particularly bird vocalizations, often exhibit rapid and irregular amplitude fluctuations over time, \code{ACIsp} captures this temporal variability as a proxy for acoustic complexity.
 
-In \code{Ruido}, \code{ACI} is computed independently within each time bin. Within a time bin, the signal is further subdivided into smaller temporal segments, here referred to as cluster intervals \eqn{j}.
+In \code{Ruido}, \code{ACIsp} is computed independently within each time bin. Within a time bin, the signal is further subdivided into smaller temporal segments, here referred to as cluster intervals \eqn{j}.
 
 For a given frequency bin \eqn{f_l}, acoustic intensity values \eqn{I_k} are evaluated across consecutive time steps \eqn{k} within each cluster interval \eqn{j}. The absolute differences between adjacent time steps are calculated as:
 
@@ -63,7 +63,7 @@ For each frequency bin \eqn{f_l}, \code{ACI} values are summed across all cluste
 
 where \eqn{m} is the number of cluster intervals in the time bin.
 
-The result is a frequency-resolved representation of \code{ACI} for each time bin, rather than a single scalar value for the entire recording.
+The result is a frequency-resolved representation of \code{ACIsp} for each time bin, rather than a single scalar value for the entire recording.
 
 In the original formulation (Pieretti et al., 2011), \code{ACI} is further summed across all frequency bins:
 
@@ -72,6 +72,30 @@ In the original formulation (Pieretti et al., 2011), \code{ACI} is further summe
 where \eqn{q} is the total number of frequency bins. This final aggregation step is not performed in this package.
 }
 \examples{
+library(tuneR)
+
+samprate = 12050
+dur = 60
+n = samprate * dur
+
+set.seed(413)
+noise = rnorm(n)
+
+fade = seq(1, 0, length.out = n)
+signal = noise * fade
+
+wave = Wave(left = signal, right = signal,
+            samp.rate = samprate,
+            bit = 16)
+
+wave
+
+ACI = ACIspec(wave)
+
+ACI
+
+plot(ACI)
+
 \donttest{
 ### This is an secondary example using audio from a real soundscape
 ### These audios are originated from the Escutadô Project, a project
@@ -89,13 +113,13 @@ url = paste0("https://zenodo.org/records/17575795/files/",
 download.file(url, destfile = recDir, mode = "wb")
 
 # Running the ACIspec function with all the default arguments
-aci = ACIspec(recDir)
+ACIsp = ACIspec(recDir)
 
 # Here's the result
-aci
+ACIsp
 
 # Plot ACI values
-plot(aci)
+plot(ACIsp)
 }
 
 }
@@ -103,5 +127,5 @@ plot(aci)
 Pieretti, N., Farina, A., & Morri, D. (2011). A new methodology to infer the singing activity of an avian community: The Acoustic Complexity Index (ACI). Ecological Indicators, 11(3), 868–873. https://doi.org/10.1016/j.ecolind.2010.11.005
 }
 \seealso{
-\code{\link[=ENTspec]{ENTspec()}} to calculate Spectral Entropy and \code{\link[=bgNoise]{bgNoise()}} to calculate Background Noise and Soundscape Power.
+\code{\link[=ENTspec]{ENTspec()}} to calculate Spectral Entropy and \code{\link[=BGNspec]{BGNspec()}} to calculate Background Noise and Soundscape Power.
 }

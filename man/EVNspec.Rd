@@ -49,7 +49,7 @@ This function returns a \link[=noise.matrix-class]{noise.matrix} object containi
 Calculate the number of acoustic events per second in each frequency bin of a single audio using the methodology described by Towsey (2017).
 }
 \details{
-Spectral Acoustic Events (EVNsp) quantifies the number of acoustic events per second within each frequency bin. An acoustic event is defined as an upward crossing of a 3-dB threshold above the estimated background noise level.
+Spectral Acoustic Events (\code{EVNsp}) quantifies the number of acoustic events per second within each frequency bin. An acoustic event is defined as an upward crossing of a 3-dB threshold above the estimated background noise level.
 
 The spectrogram is first converted to decibels and the spectral Background Noise (BGN) is calculated independently for each frequency bin and time bin. The resulting background level is then subtracted from the corresponding frequency bin of the spectrogram to produce a noise-reduced spectrogram:
 
@@ -66,6 +66,30 @@ where \eqn{I} is an indicator function. Thus, consecutive spectral frames remain
 Event counts are calculated independently for each frequency bin. The resulting values represent the number of detected acoustic events per time bin and are expressed as events per second.
 }
 \examples{
+library(tuneR)
+
+samprate = 12050
+dur = 60
+n = samprate * dur
+
+set.seed(413)
+noise = rnorm(n)
+
+fade = seq(1, 0, length.out = n)
+signal = noise * fade
+
+wave = Wave(left = signal, right = signal,
+            samp.rate = samprate,
+            bit = 16)
+
+wave
+
+EVN = EVNspec(wave)
+
+EVN
+
+plot(EVN)
+
 \donttest{
 ### These audios are originated from the Escutadô Project, a project
 ### that records the soundscapes of the brazilian semiarid
@@ -82,13 +106,13 @@ url = paste0("https://zenodo.org/records/17575795/files/",
 download.file(url, destfile = recDir, mode = "wb")
 
 # Running the EVNspec function with all the default arguments
-evn = EVNspec(recDir)
+EVNsp = EVNspec(recDir)
 
 # Here's the result
-evn
+EVNsp
 
 # Plot EVN values
-plot(evn)
+plot(EVNsp)
 }
 }
 \references{
@@ -96,5 +120,5 @@ Towsey, M. W. (2017). The calculation of acoustic indices derived from long-dura
 \if{html}{\out{<br>}}Lamel, L., Rabiner, L., Rosenberg, A., & Wilpon, J. (1981). An improved endpoint detector for isolated word recognition. \emph{IEEE Transactions on Acoustics, Speech, and Signal Processing}, 29(4), 777-785 https://doi.org/10.1109/TASSP.1981.1163642
 }
 \seealso{
-\code{\link[=bgNoise]{bgNoise()}} to calculate spectral Background Noise and Soundscape Power, \code{\link[=bgn]{bgn()}} to calculate summarized Background Noise and Soundscape Power, and \code{\link[=ACIspec]{ACIspec()}} to calculate the Acoustic Complexity Index from a single audio file.
+\code{\link[=BGNspec]{BGNspec()}} to calculate spectral Background Noise and Soundscape Power, \code{\link[=BGN]{BGN()}} to calculate summarized Background Noise and Soundscape Power, and \code{\link[=ACIspec]{ACIspec()}} to calculate the Acoustic Complexity Index from a single audio file.
 }

@@ -7,13 +7,13 @@
 satBackup(backup)
 }
 \arguments{
-\item{backup}{path to the \code{.rds} file create by the backup of soundSat, soundMat or multActivity}
+\item{backup}{path to the \code{.rds} file create by the backup of soundSAT, soundMAT or soundACT}
 }
 \value{
-This functions returns the same output of \code{\link[=soundSat]{soundSat()}}, \code{\link[=soundMat]{soundMat()}} or \code{\link[=multActivity]{multActivity()}}
+This functions returns the same output of \code{\link[=soundSAT]{soundSAT()}}, \code{\link[=soundMAT]{soundMAT()}} or \code{\link[=soundACT]{soundACT()}}
 }
 \description{
-This function offers a way to continue an unfinished process of the \code{\link[=soundSat]{soundSat()}}, \code{\link[=soundMat]{soundMat()}} or \code{\link[=multActivity]{multActivity()}} functions through a backup file.
+This function offers a way to continue an unfinished process of the \code{\link[=soundSAT]{soundSAT()}}, \code{\link[=soundMAT]{soundMAT()}} or \code{\link[=soundACT]{soundACT()}} functions through a backup file.
 Arguments can't be inputted nor changed since the function will automatically load them from the \code{.rds} file. However you may manually change them by editing the file (not recommended).
 }
 \examples{
@@ -34,7 +34,7 @@ for(rec in recName) {
   download.file(url, destfile = paste(dir, rec, sep = "/"), mode = "wb")
 }
 
-sat = soundSat(dir, backup = dir)
+sat = soundSAT(dir, backup = dir)
 
 # Now pretend the process was interrupted (manually/your R crashed/your computer turned off)
 # We get the backup file

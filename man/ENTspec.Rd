@@ -30,15 +30,15 @@ ENTspec(
 \item{overlap}{overlap between the spectrogram windows. Defaults to \code{wl/2} (half the window length)}
 }
 \value{
-This function returns a \link[=noise.matrix-class]{noise.matrix} object.
+This function returns a \link[=noise.matrix-class]{noise.matrix} object containing \code{ENTsp} values.
 }
 \description{
 Calculate the Temporal Entropy values of a single audio using the methodology proposed in Towsey, et al. 2017
 }
 \details{
-The Temporal Entropy (\code{ENT}) quantifies how concentrated or dispersed acoustic energy is over time within each frequency bin. Unlike indices that track frame-to-frame change (e.g. \code{ACI}), \code{ENT} treats the distribution of energy across an entire time bin as a probability mass function and measures its Shannon entropy, capturing whether energy is spread evenly through time (high entropy, low concentration) or concentrated into brief pulses (low entropy, high concentration).
+The Temporal Entropy (\code{ENTsp}) quantifies how concentrated or dispersed acoustic energy is over time within each frequency bin. Unlike indices that track frame-to-frame change (e.g. \code{ACI}), \code{ENTsp} treats the distribution of energy across an entire time bin as a probability mass function and measures its Shannon entropy, capturing whether energy is spread evenly through time (high entropy, low concentration) or concentrated into brief pulses (low entropy, high concentration).
 
-In \code{Ruido}, \code{ENT} is computed independently within each time bin, using every time step of the spectrogram in that bin.
+In \code{Ruido}, \code{ENTsp} is computed independently within each time bin, using every time step of the spectrogram in that bin.
 
 For a given frequency bin \eqn{f}, the squared amplitude values \eqn{I_t} across all time steps \eqn{t} within the time bin are normalized to unit area, producing a probability mass function:
 
@@ -48,13 +48,37 @@ where \eqn{N} is the number of time steps in the time bin. The Shannon entropy o
 
 \deqn{H[f] = \frac{-\sum_{t = 1}^{N} pmf_{f,t} \times \log_2(pmf_{f,t})}{\log_2 N}}
 
-To express the result as an intuitive measure of energy concentration rather than dispersion, \code{ENT} is calculated as the complement of \eqn{H}:
+To express the result as an intuitive measure of energy concentration rather than dispersion, \code{ENTsp} is calculated as the complement of \eqn{H}:
 
 \deqn{ENT[f] = 1 - H[f]}
 
-The result is a frequency-resolved representation of \code{ENT} for each time bin, rather than a single scalar value for the entire recording. Values close to \code{1} indicate energy concentrated in few time steps (e.g. transient calls or pulses), while values close to \code{0} indicate energy spread evenly across the time bin (e.g. steady background noise).
+The result is a frequency-resolved representation of \code{ENTsp} for each time bin, rather than a single scalar value for the entire recording. Values close to \code{1} indicate energy concentrated in few time steps (e.g. transient calls or pulses), while values close to \code{0} indicate energy spread evenly across the time bin (e.g. steady background noise).
 }
 \examples{
+library(tuneR)
+
+samprate = 12050
+dur = 60
+n = samprate * dur
+
+set.seed(413)
+noise = rnorm(n)
+
+fade = seq(1, 0, length.out = n)
+signal = noise * fade
+
+wave = Wave(left = signal, right = signal,
+            samp.rate = samprate,
+            bit = 16)
+
+wave
+
+ENT = ENTspec(wave)
+
+ENT
+
+plot(ENT)
+
 \donttest{
 ### This is an example using audio from a real soundscape
 ### These audios are originated from the Escutadô Project, a project
@@ -72,13 +96,13 @@ url = paste0("https://zenodo.org/records/17575795/files/",
 download.file(url, destfile = recDir, mode = "wb")
 
 # Running the ENTspec function with all the default arguments
-ent = ENTspec(recDir)
+ENTsp = ENTspec(recDir)
 
 # Here's the result
-ent
+ENTsp
 
 # Plot ENT values
-plot(ent)
+plot(ENTsp)
 }
 
 }
@@ -86,5 +110,5 @@ plot(ent)
 Towsey, M. W. (2017). The calculation of acoustic indices derived from long-duration recordings of the natural environment. In eprints.qut.edu.au. https://eprints.qut.edu.au/110634/
 }
 \seealso{
-\code{\link[=ACIspec]{ACIspec()}} to calculate the Acoustic Complexity Index and \code{\link[=bgNoise]{bgNoise()}} to calculate Background Noise and Soundscape Power.
+\code{\link[=ACIspec]{ACIspec()}} to calculate the Acoustic Complexity Index and \code{\link[=BGNspec]{BGNspec()}} to calculate Background Noise and Soundscape Power.
 }

@@ -60,5 +60,5 @@
 Plot noise.matrix objects
 }
 \details{
-This is a method to quickly plot the results of \link{bgNoise}. This calls the helper function \code{plotBGN}, which is not meant to be used or seen by the user.
+This is a method to quickly plot the results of \link{BGNspec}. This calls the helper function \code{plotBGN}, which is not meant to be used or seen by the user.
 }
