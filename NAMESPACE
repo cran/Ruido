@@ -10,8 +10,6 @@ export(SAT)
 export(hamming)
 export(hanning)
 export(satBackup)
-export(soundACT)
-export(soundMAT)
 export(soundSAT)
 exportClasses(noise.matrix)
 exportMethods(plot)
@@ -33,8 +31,7 @@ importFrom(graphics,
 importFrom(matrixStats,colMaxs)
 importFrom(methods,
   is,
-  new,
-  slot
+  new
 )
 importFrom(nortest,
   ad.test,
@@ -44,17 +41,12 @@ importFrom(nortest,
   sf.test
 )
 importFrom(stats,
-  IQR,
   mvfft,
   quantile,
   setNames,
-  shapiro.test,
-  window
+  shapiro.test
 )
-importFrom(tuneR,
-  downsample,
-  readWave
-)
+importFrom(tuneR,Wave)
 importFrom(utils,
   capture.output,
   head

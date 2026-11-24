@@ -12,12 +12,16 @@
   } else if (audio == "S4") {
     path = "soundfile"
     tempSamp = soundfile@samp.rate
+    bit = soundfile@bit
     if (soundfile@stereo) {
-      soundfile = rbind(soundfile@left, soundfile@right)
+      soundfile = rbind(soundfile@left / (2^(bit-1)),
+                        soundfile@right/ (2^(bit-1)))
     } else {
-      soundfile = matrix(soundfile@left, nrow = 1, byrow = TRUE)
+      soundfile = matrix(soundfile@left/ (2^(bit-1)), nrow = 1, byrow = TRUE)
     }
     attr(soundfile, "sample_rate") = tempSamp
+  } else if (audio == "double") {
+    path = "soundfile"
   }
 
   savedAttr = attributes(soundfile)
@@ -143,7 +147,6 @@
   } else {
     nrow(BGNexp@values[[channel]]$BGN)
   }
-
 
   BGNexp@path = soundfile
 

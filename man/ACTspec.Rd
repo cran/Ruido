@@ -22,15 +22,15 @@ ACTspec(
 )
 }
 \arguments{
-\item{soundfile}{wav package numeric matrix, tuneR package Wave object or path to a \code{.wav} file}
+\item{soundfile}{wav package numeric matrix, tuneR package Wave object,  Ruido package noise.matrix or path to a \code{.wav} file}
 
-\item{channel}{channel where the saturation values will be extracted from. Available channels are: \code{"stereo"}, \code{"mono"}, \code{"left"} or \code{"right"}. Defaults to \code{"stereo"}.}
+\item{channel}{channel where the metric values will be extracted from. Available channels are: \code{"stereo"}, \code{"mono"}, \code{"left"} or \code{"right"}. Defaults to \code{"stereo"}}
 
 \item{timeBin}{size (in seconds) of the time bin. Set to \code{NULL} to use the entire audio as a single bin. Defaults to \code{60}}
 
 \item{dbThreshold}{minimum allowed value of dB for the spectrograms. Set to \code{NULL} to leave db values unrestricted Defaults to \code{-90}, as set by Towsey 2017}
 
-\item{dbRef}{reference value used to compute decibel values from the spectrogram. Defaults to \code{10}}
+\item{dbRef}{reference value used to convert spectrogram amplitude values to decibels. Defaults to \code{10}}
 
 \item{targetSampRate}{desired sample rate of the audios.  This argument is only used to down sample the audio. If \code{NULL}, then audio's sample rate remains the same. Defaults to \code{NULL}}
 
@@ -45,11 +45,11 @@ ACTspec(
 
 \item{DCfix}{if the DC offset should be removed before the metrics are calculated. Defaults to \code{TRUE}}
 
-\item{powthr}{single numeric value to calculate the activity matrix for soundscape power (in dB). Defaults to \code{10}}
+\item{powthr}{a single value to evaluate the activity matrix for Soundscape Power (in \%dB). Defaults to \code{10}.}
 
-\item{bgnthr}{single numeric value to calculate the activity matrix for background noise (in \%). Defaults to \code{0.8}}
+\item{bgnthr}{a single value to evaluate the activity matrix for Background Noise (in \%). Defaults to \code{0.8}}
 
-\item{beta}{how BGN thresholds are calculated. If \code{TRUE}, BGN thresholds are calculated using all recordings combined. If FALSE, BGN thresholds are calculated separately for each recording. Defaults to \code{TRUE}}
+\item{beta}{how BGN thresholds are calculated. If TRUE, BGN thresholds are computed using all recordings combined.}
 }
 \value{
 This function returns a 0 and 1 matrix containing the activity for all time bins of the inputted file. The matrix's number of rows will equal to half the set window length (\code{wl}) and number of columns will equal the number of bins. Cells with the value of 1 represent the acoustically active frequency of a bin.
@@ -102,5 +102,5 @@ ggplot(actDF, aes(x = BIN, y = WIN, fill = ACT)) +
 Burivalova, Z., Towsey, M., Boucher, T., Truskinger, A., Apelis, C., Roe, P., & Game, E. T. (2018). Using soundscapes to detect variable degrees of human influence on tropical forests in Papua New Guinea. Conservation Biology, 32(1), 205-215. https://doi.org/10.1111/cobi.12968
 }
 \seealso{
-\code{\link[=soundACT]{soundACT()}} to run this over multiple audio files and \code{\link[=SAT]{SAT()}} to get the full saturation values this activity matrix is derived from.
+\code{\link[=SAT]{SAT()}} to get the full saturation values this activity matrix is derived from.
 }

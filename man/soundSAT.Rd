@@ -139,5 +139,5 @@ unlink(dir, recursive = TRUE)
 Burivalova, Z., Towsey, M., Boucher, T., Truskinger, A., Apelis, C., Roe, P., & Game, E. T. (2018). Using soundscapes to detect variable degrees of human influence on tropical forests in Papua New Guinea. Conservation Biology, 32(1), 205-215. https://doi.org/10.1111/cobi.12968
 }
 \seealso{
-\code{\link[=soundMAT]{soundMAT()}} to get saturation for ALL thresholds and \code{\link[=soundACT]{soundACT()}} to get only activity values. Also, check \code{\link[=satBackup]{satBackup()}} if you are working with bigger datasets.
+\code{\link[=satBackup]{satBackup()}} if you are working with bigger datasets and may need to generate backups.
 }

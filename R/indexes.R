@@ -2,14 +2,8 @@
 #'
 #' @description Calculate the Acoustic Complexity Index values of a single audio using the methodology proposed in Pieretti, et al. 2011
 #'
-#' @param soundfile wav package numeric matrix, tuneR package Wave object or path to a `.wav` file
-#' @param channel channel where the metric values will be extracted from. Available channels are: `"stereo"`, `"mono"`, `"left"` or `"right"`. Defaults to `"stereo"`
-#' @param timeBin size (in seconds) of the time bin. Set to `NULL` to use the entire audio as a single bin. Defaults to `60`
+#' @inheritParams BGNspec soundfile channel timeBin targetSampRate wl window overlap timeBin
 #' @param j size (in seconds) of the cluster interval. Set to `NULL` to use the entire bin as a single cluster. Defaults to `5`
-#' @param targetSampRate desired sample rate of the audios.  This argument is only used to down sample the audio. If `NULL`, then audio's sample rate remains the same. Defaults to `NULL`
-#' @param wl window length of the spectrogram. Defaults to `512`
-#' @param window window used to smooth the spectrogram. Switch to `hanning(wl)` to use hanning instead. Defaults to `hamming(wl)`
-#' @param overlap overlap between the spectrogram windows. Defaults to `wl/2` (half the window length)
 #'
 #' @returns This function returns a [noise.matrix-class] object containing `ACIsp` values.
 #'
@@ -51,9 +45,8 @@
 #' Pieretti, N., Farina, A., & Morri, D. (2011). A new methodology to infer the singing activity of an avian community: The Acoustic Complexity Index (ACI). Ecological Indicators, 11(3), 868–873. https://doi.org/10.1016/j.ecolind.2010.11.005
 #'
 #'@export
-#'@importFrom tuneR readWave
-#'@importFrom tuneR downsample
 #'@importFrom wav read_wav
+#'@importFrom tuneR Wave
 #'
 #' @examples
 #' library(tuneR)
@@ -167,21 +160,9 @@ ACIspec = function(soundfile,
 #'
 #' @description Calculate the Acoustic Activity Matrix using the methodology proposed in Burivalova 2018
 #'
-#' @param soundfile wav package numeric matrix, tuneR package Wave object or path to a `.wav` file
-#' @param channel channel where the saturation values will be extracted from. Available channels are: `"stereo"`, `"mono"`, `"left"` or `"right"`. Defaults to `"stereo"`.
-#' @param timeBin size (in seconds) of the time bin. Set to `NULL` to use the entire audio as a single bin. Defaults to `60`
-#' @param dbThreshold minimum allowed value of dB for the spectrograms. Set to `NULL` to leave db values unrestricted Defaults to `-90`, as set by Towsey 2017
-#' @param dbRef reference value used to compute decibel values from the spectrogram. Defaults to `10`
-#' @param targetSampRate desired sample rate of the audios.  This argument is only used to down sample the audio. If `NULL`, then audio's sample rate remains the same. Defaults to `NULL`
-#' @param wl window length of the spectrogram. Defaults to `512`
-#' @param window window used to smooth the spectrogram. Switch to `hanning(wl)` to use hanning instead. Defaults to `hamming(wl)`
-#' @param overlap overlap between the spectrogram windows. Defaults to `wl/2` (half the window length)
-#' @param histbreaks breaks used to calculate Background Noise. Available breaks are: `"FD"`, `"Sturges"`, `"scott"` and `100`. Defaults to `"FD"`.
-#' <br>Can also be set to any numerical value to limit or increase the amount of breaks.
-#' @param DCfix if the DC offset should be removed before the metrics are calculated. Defaults to `TRUE`
-#' @param powthr single numeric value to calculate the activity matrix for soundscape power (in dB). Defaults to `10`
-#' @param bgnthr single numeric value to calculate the activity matrix for background noise (in %). Defaults to `0.8`
-#' @param beta how BGN thresholds are calculated. If `TRUE`, BGN thresholds are calculated using all recordings combined. If FALSE, BGN thresholds are calculated separately for each recording. Defaults to `TRUE`
+#' @param soundfile wav package numeric matrix, tuneR package Wave object,  Ruido package noise.matrix or path to a `.wav` file
+#' @inheritParams SAT soundfile powthr bgnthr beta
+#' @inheritParams BGNspec channel timeBin dbThreshold dbRef targetSampRate wl window overlap timeBin DCfix histbreaks
 #'
 #' @returns This function returns a 0 and 1 matrix containing the activity for all time bins of the inputted file. The matrix's number of rows will equal to half the set window length (`wl`) and number of columns will equal the number of bins. Cells with the value of 1 represent the acoustically active frequency of a bin.
 #'
@@ -191,14 +172,12 @@ ACIspec = function(soundfile,
 #'
 #' where \eqn{\theta} is a user-defined threshold applied uniformly to both `BGN` and `POW`. We set 1 to active and 0 to inactive frequency windows.
 #'
-#' @seealso [soundACT()] to run this over multiple audio files and [SAT()] to get the full saturation values this activity matrix is derived from.
+#' @seealso [SAT()] to get the full saturation values this activity matrix is derived from.
 #'
 #'@references Burivalova, Z., Towsey, M., Boucher, T., Truskinger, A., Apelis, C., Roe, P., & Game, E. T. (2018). Using soundscapes to detect variable degrees of human influence on tropical forests in Papua New Guinea. Conservation Biology, 32(1), 205-215. https://doi.org/10.1111/cobi.12968
 #'
 #'@export
 #'@importFrom methods is
-#'@importFrom methods slot
-#'@importFrom stats IQR
 #'@importFrom stats quantile
 #'@importFrom stats setNames
 #'@importFrom stats shapiro.test
@@ -333,16 +312,8 @@ ACTspec = function(soundfile,
 #'
 #' @description Calculate the summarized Background Noise and Soundscape Power values of a single audio using the methodology proposed in Towsey 2017
 #'
-#' @param soundfile wav package numeric matrix, tuneR package Wave object or path to a `.wav` file
-#' @param channel channel where the metric values will be extracted from. Available channels are: `"stereo"`, `"mono"`, `"left"` or `"right"`. Defaults to `"stereo"`
-#' @param timeBin size (in seconds) of the time bin. Set to `NULL` to use the entire audio as a single bin. Defaults to `60`
-#' @param dbThreshold minimum allowed value of dB for the spectrograms. Set to `NULL` to leave db values unrestricted Defaults to `-90`, as set by Towsey 2017
-#' @param dbRef reference value used to compute decibel values from the spectrogram. Defaults to `10`
-#' @param targetSampRate desired sample rate of the audios.  This argument is only used to down sample the audio. If `NULL`, then audio's sample rate remains the same. Defaults to `NULL`
+#' @inheritParams BGNspec soundfile channel timeBin dbThreshold dbRef targetSampRate histbreaks DCfix
 #' @param wl length of each waveform frame in samples. The waveform is divided into non-overlapping frames of this length before the envelope is calculated. Defaults to `512`
-#' @param histbreaks breaks used to calculate Background Noise. Available breaks are: `"FD"`, `"Sturges"`, `"scott"` and `100`. Defaults to `"FD"`.
-#' <br>Can also be set to any numerical value to limit or increase the amount of breaks.
-#' @param DCfix if the DC offset should be removed before the metrics are calculated. Defaults to `TRUE`
 #'
 #' @returns A list containing the `BGN` and `POW` values calculated for each time bin and selected channel.
 #'
@@ -350,7 +321,7 @@ ACTspec = function(soundfile,
 #'
 #' For each waveform frame \eqn{i}, the envelope amplitude \eqn{A_i} is converted to decibels as:
 #'
-#' \deqn{dB_i = dbRef . \log_{10}(A_i/A_max)}
+#' \deqn{dB_i = dbRef . \log_{10}(A_i)}
 #'
 #' where \eqn{A_i} is the maximum absolute amplitude within the frame. Incomplete frames at the end of a time bin are discarded.
 #'
@@ -439,21 +410,14 @@ BGN = function(soundfile,
                   timeBin)
   }
 
-  channelData = switch(
-    attr(channelData, "channel"),
-    "stereo" = list(left  = channelData[1, ], right = channelData[2, ]),
-    "mono"   = list(mono  = channelData[1, ]),
-    "left"   = list(left  = channelData[1, ]),
-    "right"  = list(right = channelData[2, ])
-  )
-
   hBreak = hBreaks(histbreaks)
 
-  lapply(channelData, function(x) {
-    if (DCfix) {
-      x = x - mean(x)
-    }
-    x = abs(x)
+  if (DCfix) {
+    channelData = channelData - matrixStats::rowMeans2(channelData)
+  }
+
+  lapply(1:nrow(channelData), function(x) {
+    x = abs(channelData[x,])
 
     apply(allSamples, 1, function(y) {
       samples = x[y[1]:y[2]]
@@ -476,7 +440,14 @@ BGN = function(soundfile,
       c(BGN = modalIntensity, POW = dbMax - modalIntensity)
     })
 
-  })
+  }) |>
+    setNames(switch(
+      attr(channelData, "channel"),
+      "stereo" = c("left", "right"),
+      "mono"   = "mono",
+      "left"   = "left",
+      "right"  = "right"
+    ))
 
 }
 
@@ -632,7 +603,7 @@ BGNspec = function(soundfile,
                              targetSampRate = targetSampRate)
 
   BGNexp = processChannel.BGN(
-    channelData,
+    channelData = channelData,
     samp.rate = attr(channelData, "sample_rate"),
     channel = attr(channelData, "channel"),
     timeBin = timeBin,
@@ -662,13 +633,7 @@ BGNspec = function(soundfile,
 #'
 #' @description Calculate the Temporal Entropy values of a single audio using the methodology proposed in Towsey, et al. 2017
 #'
-#' @param soundfile wav package numeric matrix, tuneR package Wave object or path to a `.wav` file
-#' @param channel channel where the metric values will be extracted from. Available channels are: `"stereo"`, `"mono"`, `"left"` or `"right"`. Defaults to `"stereo"`
-#' @param timeBin size (in seconds) of the time bin. Set to `NULL` to use the entire audio as a single bin. Defaults to `60`
-#' @param targetSampRate desired sample rate of the audios.  This argument is only used to down sample the audio. If `NULL`, then audio's sample rate remains the same. Defaults to `NULL`
-#' @param wl window length of the spectrogram. Defaults to `512`
-#' @param window window used to smooth the spectrogram. Switch to `hanning(wl)` to use hanning instead. Defaults to `hamming(wl)`
-#' @param overlap overlap between the spectrogram windows. Defaults to `wl/2` (half the window length)
+#' @inheritParams BGNspec soundfile channel timeBin targetSampRate wl window overlap
 #'
 #' @returns This function returns a [noise.matrix-class] object containing `ENTsp` values.
 #'
@@ -721,7 +686,6 @@ BGNspec = function(soundfile,
 #' ENT
 #'
 #' plot(ENT)
-#'
 #' \donttest{
 #' ### This is an example using audio from a real soundscape
 #' ### These audios are originated from the Escutadô Project, a project
@@ -798,18 +762,7 @@ ENTspec = function(soundfile,
 #'
 #' @description Calculate the number of acoustic events per second in each frequency bin of a single audio using the methodology described by Towsey (2017).
 #'
-#' @param soundfile wav package numeric matrix, tuneR package Wave object or path to a `.wav` file
-#' @param channel channel where the metric values will be extracted from. Available channels are: `"stereo"`, `"mono"`, `"left"` or `"right"`. Defaults to `"stereo"`
-#' @param timeBin size (in seconds) of the time bin. Set to `NULL` to use the entire audio as a single bin. Defaults to `60`
-#' @param dbThreshold minimum allowed value of dB for the spectrograms. Set to `NULL` to leave db values unrestricted Defaults to `-90`, as set by Towsey 2017
-#' @param dbRef reference value used to compute decibel values from the spectrogram. Defaults to `10`
-#' @param targetSampRate desired sample rate of the audios.  This argument is only used to down sample the audio. If `NULL`, then audio's sample rate remains the same. Defaults to `NULL`
-#' @param wl window length of the spectrogram. Defaults to `512`
-#' @param window window used to smooth the spectrogram. Switch to `hanning(wl)` to use hanning instead. Defaults to `hamming(wl)`
-#' @param overlap overlap between the spectrogram windows. Defaults to `wl/2` (half the window length)
-#' @param histbreaks breaks used to calculate Background Noise. Available breaks are: `"FD"`, `"Sturges"`, `"scott"` and `100`. Defaults to `"FD"`.
-#' <br>Can also be set to any numerical value to limit or increase the amount of breaks.
-#' @param DCfix if the DC offset should be removed before the metrics are calculated. Defaults to `TRUE`
+#'@inheritParams BGNspec soundfile channel timeBin dbThreshold dbRef targetSampRate wl window overlap histbreaks DCfix
 #'
 #' @returns This function returns a [noise.matrix-class] object containing the number of acoustic events per second in each frequency bin.
 #'
@@ -947,17 +900,7 @@ EVNspec = function(soundfile,
 #' @title Single Soundscape Saturation Index
 #'
 #' @param soundfile wav package numeric matrix, tuneR package Wave object, Ruido noise.matrix object or path to a `.wav` file
-#' @param channel channel where the background noise values will be extracted from. Available channels are: `"stereo"`, `"mono"`, `"left"` or `"right"`. Defaults to `"stereo"`.
-#' @param timeBin size (in seconds) of the time bin. Set to `NULL` to use the entire audio as a single bin. Defaults to `60`
-#' @param dbThreshold minimum allowed value of dB for the spectrograms. Set to `NULL` to leave db values unrestricted Defaults to `-90`, as set by Towsey 2017
-#' @param dbRef reference value used to compute decibel values from the spectrogram.
-#' @param targetSampRate sample rate of the audios. Defaults to `NULL` to not change the sample rate. This argument is only used to down sample the audio.
-#' @param wl window length of the spectrogram. Defaults to `512`.
-#' @param window window used to smooth the spectrogram. Defaults to `hamming(wl)`. Switch to `hanning(wl)` if to use hanning instead.
-#' @param overlap overlap between the spectrogram windows. Defaults to `wl/2` (half the window length)
-#' @param histbreaks breaks used to calculate Background Noise. Available breaks are: `"FD"`, `"Sturges"`, `"scott"` and `100`. Defaults to `"FD"`.
-#' <br>Can also be set to any numerical value to limit or increase the amount of breaks.
-#' @param DCfix if the DC offset should be removed before the metrics are calculated. Defaults to `TRUE`
+#' @inheritParams BGNspec channel timeBin targetSampRate wl window overlap histbreaks DCfix dbThreshold dbRef
 #' @param powthr a single value to evaluate the activity matrix for Soundscape Power (in %dB). Defaults to `10`.
 #' @param bgnthr a single value to evaluate the activity matrix for Background Noise (in %). Defaults to `0.8`
 #' @param beta how BGN thresholds are calculated. If TRUE, BGN thresholds are computed using all recordings combined.
@@ -978,7 +921,7 @@ EVNspec = function(soundfile,
 #'
 #' where \eqn{N} is the total number of frequency bins. Higher values of `SAT` indicate a greater fraction of the frequency spectrum being occupied by acoustic activity.
 #'
-#' @seealso [soundSAT()] and [soundMAT()] to work with multiple audio files and [ACTspec()] to get only the activity matrix.
+#' @seealso [soundSAT()] to work with multiple audio files and [ACTspec()] to get only the activity matrix.
 #'
 #'@references Burivalova, Z., Towsey, M., Boucher, T., Truskinger, A., Apelis, C., Roe, P., & Game, E. T. (2018). Using soundscapes to detect variable degrees of human influence on tropical forests in Papua New Guinea. Conservation Biology, 32(1), 205-215. https://doi.org/10.1111/cobi.12968
 #'

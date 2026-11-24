@@ -25,7 +25,7 @@ BGN(
 
 \item{dbThreshold}{minimum allowed value of dB for the spectrograms. Set to \code{NULL} to leave db values unrestricted Defaults to \code{-90}, as set by Towsey 2017}
 
-\item{dbRef}{reference value used to compute decibel values from the spectrogram. Defaults to \code{10}}
+\item{dbRef}{reference value used to convert spectrogram amplitude values to decibels. Defaults to \code{10}}
 
 \item{targetSampRate}{desired sample rate of the audios.  This argument is only used to down sample the audio. If \code{NULL}, then audio's sample rate remains the same. Defaults to \code{NULL}}
 
@@ -47,7 +47,7 @@ Background Noise (\code{BGN}) is an acoustic metric that estimates the dominant 
 
 For each waveform frame \eqn{i}, the envelope amplitude \eqn{A_i} is converted to decibels as:
 
-\deqn{dB_i = dbRef . \log_{10}(A_i/A_max)}
+\deqn{dB_i = dbRef . \log_{10}(A_i)}
 
 where \eqn{A_i} is the maximum absolute amplitude within the frame. Incomplete frames at the end of a time bin are discarded.
 

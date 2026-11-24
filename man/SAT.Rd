@@ -24,19 +24,19 @@ SAT(
 \arguments{
 \item{soundfile}{wav package numeric matrix, tuneR package Wave object, Ruido noise.matrix object or path to a \code{.wav} file}
 
-\item{channel}{channel where the background noise values will be extracted from. Available channels are: \code{"stereo"}, \code{"mono"}, \code{"left"} or \code{"right"}. Defaults to \code{"stereo"}.}
+\item{channel}{channel where the metric values will be extracted from. Available channels are: \code{"stereo"}, \code{"mono"}, \code{"left"} or \code{"right"}. Defaults to \code{"stereo"}}
 
 \item{timeBin}{size (in seconds) of the time bin. Set to \code{NULL} to use the entire audio as a single bin. Defaults to \code{60}}
 
 \item{dbThreshold}{minimum allowed value of dB for the spectrograms. Set to \code{NULL} to leave db values unrestricted Defaults to \code{-90}, as set by Towsey 2017}
 
-\item{dbRef}{reference value used to compute decibel values from the spectrogram.}
+\item{dbRef}{reference value used to convert spectrogram amplitude values to decibels. Defaults to \code{10}}
 
-\item{targetSampRate}{sample rate of the audios. Defaults to \code{NULL} to not change the sample rate. This argument is only used to down sample the audio.}
+\item{targetSampRate}{desired sample rate of the audios.  This argument is only used to down sample the audio. If \code{NULL}, then audio's sample rate remains the same. Defaults to \code{NULL}}
 
-\item{wl}{window length of the spectrogram. Defaults to \code{512}.}
+\item{wl}{window length of the spectrogram. Defaults to \code{512}}
 
-\item{window}{window used to smooth the spectrogram. Defaults to \code{hamming(wl)}. Switch to \code{hanning(wl)} if to use hanning instead.}
+\item{window}{window used to smooth the spectrogram. Switch to \code{hanning(wl)} to use hanning instead. Defaults to \code{hamming(wl)}}
 
 \item{overlap}{overlap between the spectrogram windows. Defaults to \code{wl/2} (half the window length)}
 
@@ -185,5 +185,5 @@ unlink(dir, recursive = TRUE)
 Burivalova, Z., Towsey, M., Boucher, T., Truskinger, A., Apelis, C., Roe, P., & Game, E. T. (2018). Using soundscapes to detect variable degrees of human influence on tropical forests in Papua New Guinea. Conservation Biology, 32(1), 205-215. https://doi.org/10.1111/cobi.12968
 }
 \seealso{
-\code{\link[=soundSAT]{soundSAT()}} and \code{\link[=soundMAT]{soundMAT()}} to work with multiple audio files and \code{\link[=ACTspec]{ACTspec()}} to get only the activity matrix.
+\code{\link[=soundSAT]{soundSAT()}} to work with multiple audio files and \code{\link[=ACTspec]{ACTspec()}} to get only the activity matrix.
 }

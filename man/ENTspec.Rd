@@ -78,7 +78,6 @@ ENT = ENTspec(wave)
 ENT
 
 plot(ENT)
-
 \donttest{
 ### This is an example using audio from a real soundscape
 ### These audios are originated from the Escutadô Project, a project

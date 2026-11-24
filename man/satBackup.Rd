@@ -2,18 +2,18 @@
 % Please edit documentation in R/multFileIndexes.R
 \name{satBackup}
 \alias{satBackup}
-\title{Backup for Ruido's functions}
+\title{Backup for soundSAT}
 \usage{
 satBackup(backup)
 }
 \arguments{
-\item{backup}{path to the \code{.rds} file create by the backup of soundSAT, soundMAT or soundACT}
+\item{backup}{path to the \code{.rds} file create by the backup of soundSAT}
 }
 \value{
-This functions returns the same output of \code{\link[=soundSAT]{soundSAT()}}, \code{\link[=soundMAT]{soundMAT()}} or \code{\link[=soundACT]{soundACT()}}
+This functions returns the same output of \code{\link[=soundSAT]{soundSAT()}}
 }
 \description{
-This function offers a way to continue an unfinished process of the \code{\link[=soundSAT]{soundSAT()}}, \code{\link[=soundMAT]{soundMAT()}} or \code{\link[=soundACT]{soundACT()}} functions through a backup file.
+This function offers a way to continue an unfinished process of the \code{\link[=soundSAT]{soundSAT()}} function through a backup file.
 Arguments can't be inputted nor changed since the function will automatically load them from the \code{.rds} file. However you may manually change them by editing the file (not recommended).
 }
 \examples{
